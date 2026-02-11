@@ -35,32 +35,62 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
         // If using Google API, we MUST use a Gemini model.
         const isGoogle = !!process.env.GOOGLE_API_KEY;
         let targetModel = model || 'gpt-4o-mini';
+        let assistantMessage = '';
+        let usage = undefined;
 
         if (isGoogle) {
-            // If user selected a specific Gemini model, try to use it. 
-            // Otherwise default to flash for speed/cost.
+            // Direct FETCH implementation for Google to avoid OpenAI SDK path issues
             if (model && model.startsWith('gemini-')) {
                 targetModel = model;
             } else {
                 targetModel = 'gemini-1.5-flash';
             }
+
+            const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.GOOGLE_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: targetModel,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        ...messages,
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 2000,
+                })
+            });
+
+            if (!googleResponse.ok) {
+                const errorText = await googleResponse.text();
+                throw new Error(`Google API Error: ${googleResponse.status} ${googleResponse.statusText} - ${errorText}`);
+            }
+
+            const data = await googleResponse.json();
+            assistantMessage = data.choices[0]?.message?.content || 'Извините, не удалось получить ответ.';
+            usage = data.usage;
+
+        } else {
+            // Fallback to OpenAI SDK for local/other providers
+            const completion = await client.chat.completions.create({
+                model: targetModel,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    ...messages,
+                ],
+                temperature: 0.7,
+                max_tokens: 2000,
+            });
+
+            assistantMessage = completion.choices[0]?.message?.content || 'Извините, не удалось получить ответ.';
+            usage = completion.usage;
         }
-
-        const completion = await client.chat.completions.create({
-            model: targetModel,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...messages,
-            ],
-            temperature: 0.7,
-            max_tokens: 2000,
-        });
-
-        const assistantMessage = completion.choices[0]?.message?.content || 'Извините, не удалось получить ответ.';
 
         return NextResponse.json({
             message: assistantMessage,
-            usage: completion.usage,
+            usage: usage,
         });
     } catch (error: any) {
         console.error('AI Chat Error:', error);
