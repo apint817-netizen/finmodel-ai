@@ -29,32 +29,9 @@ const AVAILABLE_MODELS = [
     { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', description: 'Быстрый и экономичный' },
     { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Лучшее мышление' },
 
-    // Gemini 3
-    { id: 'gemini-3-flash', name: 'Gemini 3 Flash', provider: 'Google', description: 'Предпросмотр Flash' },
-    { id: 'gemini-3-pro-high', name: 'Gemini 3 Pro High', provider: 'Google', description: 'Лучшее мышление' },
-    { id: 'gemini-3-pro-low', name: 'Gemini 3 Pro Low', provider: 'Google', description: 'Легкий и быстрый' },
-    { id: 'gemini-3-pro-image', name: 'Gemini 3 Pro (Image)', provider: 'Google', description: 'Генерация изображений (1:1)' },
-
-    // Gemini 2.5
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Быстрый ответ' },
-    { id: 'gemini-2.5-flash-thinking', name: 'Gemini 2.5 Flash (Thinking)', provider: 'Google', description: 'Цепочка рассуждений' },
-
-    // Gemini 2.0 & 1.5
-    { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Экспериментальная версия' },
-    { id: 'gemini-1.5-pro-002', name: 'Gemini 1.5 Pro', provider: 'Google', description: 'Стабильная версия' },
-
-    // Claude 4.5 & 4.6
-    { id: 'claude-sonnet-4-5', name: 'Claude 4.5 Sonnet', provider: 'Anthropic', description: 'Кодовое мышление' },
-    { id: 'claude-sonnet-4-5-thinking', name: 'Claude 4.5 Sonnet (Thinking)', provider: 'Anthropic', description: 'Цепочка рассуждений' },
-    { id: 'claude-opus-4-5-thinking', name: 'Claude 4.5 Opus (Thinking)', provider: 'Anthropic', description: 'Сильнейшее мышление' },
-    { id: 'claude-opus-4-6-thinking', name: 'Claude 4.6 Opus (Thinking)', provider: 'Anthropic', description: 'Сильнейшее мышление' },
-
-    // Claude 3.5
-    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', description: 'Стабильная версия' },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic', description: 'Быстрый и легкий' },
-
-    // Claude 3
-    { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'Anthropic', description: 'Предыдущее поколение' },
+    // Google Gemini (Supported)
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', description: 'Быстрый и стабильный' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', description: 'Глубокий анализ' },
 ];
 
 export function AIChat({ modelData, messages: externalMessages, onMessagesChange }: AIChatProps) {
@@ -117,7 +94,9 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.details || data.error || 'Ошибка сервера');
+                const error = new Error(data.details || data.error || 'Ошибка сервера');
+                (error as any).data = data; // Attach full data for debug info
+                throw error;
             }
 
             const assistantMessage: Message = {
@@ -127,11 +106,27 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
             setMessages([...newMessages, assistantMessage]); // Use unified setter
         } catch (err: any) {
             console.error('Chat error:', err);
+
+            // Try to parse debug info if it exists in the error message or object
+            let errorContent = `❌ Ошибка: ${err.message}`;
+
+            // If we have detailed info from the server (passed via exception or data)
+            if (err.data?.debug || err.data?.hint) {
+                errorContent += `\n\n💡 ${err.data.hint || 'Проверьте соединение'}`;
+
+                if (err.data.debug) {
+                    errorContent += `\n\n🔧 Debug Info:\nProvider: ${err.data.debug.provider}\nKey: ${err.data.debug.keyStatus}\nModel: ${err.data.debug.model}\nURL: ${err.data.debug.baseURL}`;
+                }
+            } else {
+                // Fallback hint
+                errorContent += `\n\n💡 Убедитесь, что настройки корректны.`;
+            }
+
             setError(err.message || 'Не удалось получить ответ от ИИ');
 
             const errorMessages = [...newMessages, {
                 role: 'assistant' as const,
-                content: `❌ Ошибка: ${err.message}\n\n💡 Убедитесь, что Antigravity Manager запущен на http://127.0.0.1:8045`,
+                content: errorContent,
             }];
             setMessages(errorMessages); // Use unified setter
         } finally {

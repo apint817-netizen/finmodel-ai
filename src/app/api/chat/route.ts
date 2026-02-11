@@ -32,9 +32,19 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
             : 'Вы - опытный финансовый консультант. Отвечайте на русском языке, давайте конкретные советы.';
 
         // Determine which model to use. 
-        // If using Google API, we MUST use a Gemini model, otherwise generic OpenAI models work with Antigravity.
+        // If using Google API, we MUST use a Gemini model.
         const isGoogle = !!process.env.GOOGLE_API_KEY;
-        const targetModel = isGoogle ? 'gemini-1.5-flash' : (model || 'gpt-4o-mini');
+        let targetModel = model || 'gpt-4o-mini';
+
+        if (isGoogle) {
+            // If user selected a specific Gemini model, try to use it. 
+            // Otherwise default to flash for speed/cost.
+            if (model && model.startsWith('gemini-')) {
+                targetModel = model;
+            } else {
+                targetModel = 'gemini-1.5-flash';
+            }
+        }
 
         const completion = await client.chat.completions.create({
             model: targetModel,
