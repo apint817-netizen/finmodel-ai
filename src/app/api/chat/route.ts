@@ -127,10 +127,10 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
                 error: 'Ошибка при обращении к ИИ',
                 details: error.message,
                 debug: {
-                    provider: isGoogle ? 'Google' : 'Antigravity (Local)',
+                    provider: isGoogle ? 'Google (Native)' : 'Antigravity (Local)',
                     keyStatus,
-                    model: isGoogle ? 'gemini-1.5-flash' : (process.env.model || 'gpt-4o-mini'),
-                    baseURL: aiClient.baseURL,
+                    model: targetModel,
+                    baseURL: isGoogle ? 'https://generativelanguage.googleapis.com/v1beta/models/...' : aiClient.baseURL,
                 },
                 hint: isGoogle
                     ? 'Проверьте API ключ и лимиты Google AI Studio'
