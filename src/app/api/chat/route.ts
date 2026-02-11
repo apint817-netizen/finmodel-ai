@@ -31,8 +31,13 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
 Отвечайте на русском языке. Давайте конкретные, практичные советы. Будьте дружелюбны и профессиональны.`
             : 'Вы - опытный финансовый консультант. Отвечайте на русском языке, давайте конкретные советы.';
 
+        // Determine which model to use. 
+        // If using Google API, we MUST use a Gemini model, otherwise generic OpenAI models work with Antigravity.
+        const isGoogle = !!process.env.GOOGLE_API_KEY;
+        const targetModel = isGoogle ? 'gemini-1.5-flash' : (model || 'gpt-4o-mini');
+
         const completion = await client.chat.completions.create({
-            model: model || 'gpt-4o-mini',
+            model: targetModel,
             messages: [
                 { role: 'system', content: systemPrompt },
                 ...messages,

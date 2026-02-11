@@ -21,7 +21,7 @@ export const aiClient = new OpenAI({
 export async function analyzeFinancialModel(modelData: any) {
     try {
         const response = await aiClient.chat.completions.create({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             messages: [
                 {
                     role: 'system',
@@ -55,7 +55,7 @@ export async function analyzeFinancialModel(modelData: any) {
 export async function chatWithAI(messages: ChatCompletionMessageParam[]) {
     try {
         const response = await aiClient.chat.completions.create({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             messages: [
                 {
                     role: 'system',
