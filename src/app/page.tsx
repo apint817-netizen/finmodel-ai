@@ -103,9 +103,7 @@ export default function HomePage() {
             </button>
           </motion.div>
 
-          import {DashboardPreview} from '@/components/DashboardPreview';
 
-          // ... (inside the component)
 
           {/* Hero Image / Preview UI Placeholder */}
           <motion.div
