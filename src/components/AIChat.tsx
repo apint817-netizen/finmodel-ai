@@ -30,8 +30,7 @@ const AVAILABLE_MODELS = [
     { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Лучшее мышление' },
 
     // Google Gemini (Supported)
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'Google', description: 'Быстрый и стабильный' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'Google', description: 'Глубокий анализ' },
+    { id: 'gemini-1.5-flash', name: 'Google Gemini (Auto)', provider: 'Google', description: 'Автоматический выбор (Flash/Pro)' },
 ];
 
 export function AIChat({ modelData, messages: externalMessages, onMessagesChange }: AIChatProps) {
