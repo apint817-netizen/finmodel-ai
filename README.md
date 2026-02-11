@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FinModel AI 🚀
 
-## Getting Started
+Универсальная платформа для расчёта финансовых моделей любого бизнеса с интеграцией ИИ.
 
-First, run the development server:
+## ✨ Возможности
+
+- 🤖 **ИИ-Консультант** - Анализ, рекомендации и выявление рисков через Antigravity Manager
+- 📊 **Умные расчёты** - ROI, точка безубыточности, NPV, IRR и другие метрики
+- 📑 **Готовые шаблоны** - Для розницы, общепита, услуг, развлечений и других отраслей
+- 📈 **Визуализация** - Интерактивные графики и дашборды
+- 📤 **Экспорт** - В Google Sheets, Excel и PDF
+
+## 🛠️ Технологии
+
+- **Frontend:** Next.js 14, React, TypeScript
+- **Styling:** Tailwind CSS
+- **AI:** Antigravity Manager (OpenAI-compatible API)
+- **Charts:** Recharts
+- **Icons:** Lucide React
+- **State:** Zustand
+- **Forms:** React Hook Form + Zod
+
+## 🚀 Быстрый старт
+
+### 1. Установка зависимостей
+
+```bash
+npm install
+```
+
+### 2. Настройка Antigravity Manager
+
+Убедитесь, что Antigravity Manager запущен на `http://127.0.0.1:8045`
+
+Файл `.env.local` уже настроен:
+```env
+ANTIGRAVITY_URL=http://127.0.0.1:8045/v1
+ANTIGRAVITY_API_KEY=sk-antigravity
+```
+
+### 3. Запуск приложения
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000) в браузере.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Структура проекта
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+finmodel-ai/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── page.tsx           # Главная страница
+│   │   ├── dashboard/         # Дашборд
+│   │   └── layout.tsx         # Root layout
+│   ├── lib/                   # Утилиты и библиотеки
+│   │   └── ai-client.ts       # Интеграция с Antigravity Manager
+│   └── components/            # React компоненты
+├── .env.local                 # Переменные окружения
+└── package.json
+```
 
-## Learn More
+## 🎨 Дизайн
 
-To learn more about Next.js, take a look at the following resources:
+Минималистичный дизайн в стиле Antigravity и Apple:
+- Чистый и аккуратный интерфейс
+- Плавные анимации и переходы
+- Градиенты и современная типографика
+- Интуитивно понятная навигация
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔮 Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [x] Базовая структура проекта
+- [x] Интеграция с Antigravity Manager
+- [x] Главная страница и дашборд
+- [ ] Конструктор финмодели
+- [ ] ИИ-чат ассистент
+- [ ] Расчёты и метрики
+- [ ] Визуализация данных
+- [ ] Экспорт в Google Sheets
+- [ ] Шаблоны по отраслям
+- [ ] Desktop версия (.exe)
 
-## Deploy on Vercel
+## 📝 Лицензия
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+MIT
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Создано с помощью [Antigravity Manager](https://github.com/lbjlaq/Antigravity-Manager)
