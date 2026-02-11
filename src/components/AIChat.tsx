@@ -251,7 +251,10 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
                             <Sparkles className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-slate-900 dark:text-white">ИИ-Консультант</h3>
+                            <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                ИИ-Консультант
+                                <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">v2.1</span>
+                            </h3>
                             <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
                                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                                 <span>Онлайн</span>
