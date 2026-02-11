@@ -36,6 +36,9 @@ import { ExportButton } from '@/components/ExportButton';
 import { ScenarioSelector, Scenario } from '@/components/ScenarioSelector';
 import { ContextHint } from '@/components/ContextHint';
 
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+
 type Tab = 'investments' | 'revenues' | 'expenses' | 'forecast';
 
 export default function EditorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -116,12 +119,6 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
         { id: 'expenses' as Tab, name: 'Расходы', icon: CreditCard },
         { id: 'forecast' as Tab, name: 'Прогноз', icon: BarChart3 },
     ];
-
-    // ... (imports)
-    import { motion, AnimatePresence } from 'framer-motion';
-    import { X } from 'lucide-react';
-
-    // ... (existing code up to return)
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
