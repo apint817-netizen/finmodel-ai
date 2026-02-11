@@ -70,7 +70,7 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
                             parts: [{ text: msg.content }]
                         })),
                         system_instruction: { parts: [{ text: systemPrompt }] },
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
                     })
                 });
 
