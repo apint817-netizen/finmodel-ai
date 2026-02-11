@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight, BarChart3, Brain, FileSpreadsheet, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
+import { DashboardPreview } from '@/components/DashboardPreview';
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -102,19 +103,17 @@ export default function HomePage() {
             </button>
           </motion.div>
 
+          import {DashboardPreview} from '@/components/DashboardPreview';
+
+          // ... (inside the component)
+
           {/* Hero Image / Preview UI Placeholder */}
           <motion.div
             variants={fadeInUp}
             className="mt-20 relative mx-auto max-w-5xl rounded-3xl bg-slate-900 p-2 shadow-2xl shadow-indigo-500/20 md:p-3"
           >
             <div className="rounded-2xl bg-slate-800 overflow-hidden aspect-[16/9] relative group">
-              {/* Abstract UI representation */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                <div className="text-center">
-                  <BarChart3 className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-                  <p className="text-slate-500 font-medium">Интерактивный дашборд</p>
-                </div>
-              </div>
+              <DashboardPreview />
               {/* Glass overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent pointer-events-none" />
             </div>
