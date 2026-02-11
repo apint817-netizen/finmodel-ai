@@ -39,38 +39,57 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
         let usage = undefined;
 
         if (isGoogle) {
-            // Direct FETCH implementation for Google to avoid OpenAI SDK path issues
+            // NATIVE Google Gemini API implementation
+            // This bypasses the OpenAI compatibility layer which was causing 404s
+
             if (model && model.startsWith('gemini-')) {
                 targetModel = model;
             } else {
                 targetModel = 'gemini-1.5-flash';
             }
 
-            const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+            // Convert OpenAI messages to Gemini format
+            const geminiContents = messages.map((msg: any) => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }]
+            }));
+
+            // Add system prompt if present (Gemini 1.5 supports system_instruction, but for simplicity we can prepend or use proper field)
+            // Ideally system prompt should be separate, but prepending to first user message or using system_instruction is common.
+            // Let's use the proper 'system_instruction' field for Gemini 1.5
+
+            const googleResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.GOOGLE_API_KEY}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: targetModel,
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        ...messages,
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 2000,
+                    contents: geminiContents,
+                    system_instruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 2000,
+                    }
                 })
             });
 
             if (!googleResponse.ok) {
                 const errorText = await googleResponse.text();
-                throw new Error(`Google API Error: ${googleResponse.status} ${googleResponse.statusText} - ${errorText}`);
+                throw new Error(`Google API (Native) Error: ${googleResponse.status} ${googleResponse.statusText} - ${errorText}`);
             }
 
             const data = await googleResponse.json();
-            assistantMessage = data.choices[0]?.message?.content || 'Извините, не удалось получить ответ.';
-            usage = data.usage;
+            // Extract text from Gemini response
+            assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Извините, не удалось получить ответ.';
+
+            // Map usage roughly if available, or just ignore
+            usage = {
+                prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
+                completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
+                total_tokens: data.usageMetadata?.totalTokenCount || 0
+            };
 
         } else {
             // Fallback to OpenAI SDK for local/other providers
