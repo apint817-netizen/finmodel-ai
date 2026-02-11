@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Plus, BarChart3, Coffee, Scissors, Gamepad2, ShoppingCart, Archive, Trash2, RefreshCw, TrendingUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, BarChart3, Coffee, Scissors, Gamepad2, ShoppingCart, Archive, Trash2, RefreshCw, TrendingUp, Search, Loader2, Copy, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useProjectStore } from '@/lib/store';
 import { useState } from 'react';
@@ -18,6 +19,23 @@ export default function DashboardPage() {
     const { projects, createProject, archiveProject, restoreProject, deleteProject } = useProjectStore();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const container = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const item = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0 }
+    };
 
     const handleCreateProject = (templateId: string) => {
         const template = templates.find((t) => t.id === templateId);
@@ -33,6 +51,13 @@ export default function DashboardPage() {
         // For now, let's just create a generic project.
         const project = createProject('Новый проект', 'default'); // 'default' template ID
         router.push(`/editor/${project.id}`);
+    };
+
+    const handleDeleteProject = (id: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        if (confirm('Удалить проект навсегда? Это действие нельзя отменить.')) {
+            deleteProject(id);
+        }
     };
 
     const displayedProjects = projects.filter(p =>
@@ -64,7 +89,11 @@ export default function DashboardPage() {
 
             <div className="max-w-7xl mx-auto px-6 py-12">
                 {/* Welcome Section */}
-                <div className="mb-8">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-8"
+                >
                     <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Добро пожаловать! 👋</h1>
                     <p className="text-lg text-slate-600 dark:text-slate-400">
                         Управляйте вашими финансовыми моделями
@@ -268,48 +297,11 @@ export default function DashboardPage() {
                                         <span>Создать первый проект</span>
                                     </Link>
                                 </motion.div>
-                    <>
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                restoreProject(project.id);
-                            }}
-                            className="p-2 text-slate-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
-                            title="Восстановить"
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                if (confirm('Удалить проект навсегда? Это действие нельзя отменить.')) deleteProject(project.id);
-                            }}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                            title="Удалить навсегда"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </>
                             )}
-                        </div>
+                        </motion.div>
+                    )}
+                </section>
+            </div>
         </div>
-            ))
-}
-
-            {/* Empty state */}
-            {
-                displayedProjects.length === 0 && activeTab === 'archived' && (
-                    <div className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-                        <div className="text-center">
-                            <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                            <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
-                        </div>
-                    </div>
-                )
-            }
-        </div >
-                </section >
-            </div >
-        </div >
     );
 }
