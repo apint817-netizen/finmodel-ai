@@ -182,6 +182,35 @@ export default function DashboardPage() {
                                                     >
                                                         <Archive className="w-4 h-4" />
                                                     </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            // Duplicate logic roughly
+                                                            // This part would ideally call a duplicateProject method from the store
+                                                            // For now, we'll simulate it or leave it as a placeholder
+                                                            // if (confirm('Дублировать проект?')) {
+                                                            //     const newProject = { ...project, id: Date.now().toString(), name: `${project.name} (Копия)`, updatedAt: new Date().toISOString() };
+                                                            //     const newProjects = [...projects, newProject];
+                                                            //     setProjects(newProjects); // setProjects is not exposed by useProjectStore
+                                                            //     localStorage.setItem('finmodel_projects', JSON.stringify(newProjects));
+                                                            //     // Copy data
+                                                            //     const data = localStorage.getItem(`finmodel_data_${project.id}`);
+                                                            //     if (data) localStorage.setItem(`finmodel_data_${newProject.id}`, data);
+                                                            // }
+                                                            alert('Функция дублирования пока не реализована.');
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                                                        title="Дублировать"
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteProject(project.id, e)}
+                                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                                        title="Удалить"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </>
                                             ) : (
                                                 <>
@@ -211,10 +240,7 @@ export default function DashboardPage() {
 
                             {/* Empty state */}
                             {displayedProjects.length === 0 && activeTab === 'archived' && (
-                                <motion.div
-                                    variants={item}
-                                    className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800"
-                                >
+                                <motion.div variants={item} className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
                                     <div className="text-center">
                                         <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                                         <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
@@ -234,12 +260,6 @@ export default function DashboardPage() {
                                     <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
                                         У вас пока нет созданных моделей. Выберите шаблон, чтобы начать.
                                     </p>
-                                    if (confirm('Архивировать этот проект?')) archiveProject(project.id);
-                                                }}
-                                    className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
-                                    title="В архив"
-                                            >
-                                    <Archive className="w-4 h-4" />
                                 </button>
                                         </>
                     ) : (
