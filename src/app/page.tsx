@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, BarChart3, Brain, FileSpreadsheet, Sparkles } from 'lucide-react';
 
@@ -16,12 +18,18 @@ export default function HomePage() {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+            <button
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            >
               Возможности
-            </Link>
-            <Link href="#how-it-works" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+            </button>
+            <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            >
               Как работает
-            </Link>
+            </button>
             <Link
               href="/dashboard"
               className="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-all hover:shadow-lg"
@@ -61,12 +69,12 @@ export default function HomePage() {
               <span className="font-medium">Создать модель</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="#how-it-works"
+            <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               className="px-8 py-4 bg-white text-slate-900 rounded-xl hover:bg-slate-50 transition-all border border-slate-200 hover:shadow-lg"
             >
               Узнать больше
-            </Link>
+            </button>
           </div>
         </div>
       </section>

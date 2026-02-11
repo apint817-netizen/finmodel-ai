@@ -218,10 +218,10 @@ export function InvestmentForm({ investments, onAdd, onUpdate, onDelete }: Inves
                 ))}
 
                 {investments.length === 0 && !showAddForm && (
-                    <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                    <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                         <div className="text-4xl mb-3">💰</div>
-                        <p className="text-slate-600 font-medium mb-1">Нет инвестиций</p>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-slate-600 dark:text-slate-300 font-medium mb-1">Нет инвестиций</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                             Нажмите "Добавить" чтобы начать
                         </p>
                     </div>
