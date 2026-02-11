@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { aiClient } from '@/lib/ai-client';
 
-const client = new OpenAI({
-    apiKey: process.env.ANTIGRAVITY_API_KEY || 'sk-antigravity',
-    baseURL: process.env.ANTIGRAVITY_URL || 'http://127.0.0.1:8045/v1',
-});
+const client = aiClient;
 
 export async function POST(req: NextRequest) {
     try {
