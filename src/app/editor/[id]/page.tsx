@@ -126,28 +126,28 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
             <header className="border-b border-slate-200/50 dark:border-slate-800/50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 sticky top-0 z-40 supports-[backdrop-filter]:bg-white/60">
                 <div className="max-w-[1920px] mx-auto px-4 sm:px-6 py-3">
                     <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="flex items-center gap-2 sm:gap-3 overflow-hidden flex-1">
                             <Link
                                 href="/dashboard"
                                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
                             >
                                 <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                             </Link>
-                            <div className="min-w-0">
-                                <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">{currentProject.name}</h1>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            <div className="min-w-0 flex-1">
+                                <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white truncate">{currentProject.name}</h1>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate hidden sm:block">
                                     Обновлено {new Date(currentProject.updatedAt).toLocaleDateString('ru-RU')}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                            <div className="hidden sm:block">
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="hidden md:block">
                                 <ThemeToggle />
                             </div>
-                            <div className="hidden sm:block">
+                            <div className="hidden lg:block">
                                 <ScenarioSelector value={scenario} onChange={setScenario} />
                             </div>
-                            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+                            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden lg:block"></div>
                             <div className="hidden sm:block">
                                 <ExportButton
                                     project={currentProject}
@@ -162,18 +162,20 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                             >
                                 <MessageSquare className="w-4 h-4" />
-                                <span className="hidden md:inline">ИИ-Ассистент</span>
+                                <span className="hidden leading-none md:inline">ИИ</span>
                             </button>
                         </div>
                     </div>
-                    {/* Mobile Controls Row */}
-                    <div className="flex items-center justify-between gap-3 mt-3 sm:hidden overflow-x-auto pb-1">
-                        <ThemeToggle />
-                        <ScenarioSelector value={scenario} onChange={setScenario} />
-                        <ExportButton
-                            project={currentProject}
-                            aiMessages={currentProject.aiChatHistory}
-                        />
+                    {/* Mobile Controls Row - Scrollable */}
+                    <div className="flex items-center gap-3 mt-3 sm:hidden overflow-x-auto pb-2 no-scrollbar">
+                        <div className="shrink-0"><ThemeToggle /></div>
+                        <div className="shrink-0"><ScenarioSelector value={scenario} onChange={setScenario} /></div>
+                        <div className="shrink-0">
+                            <ExportButton
+                                project={currentProject}
+                                aiMessages={currentProject.aiChatHistory}
+                            />
+                        </div>
                     </div>
                 </div>
             </header>
@@ -188,38 +190,38 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                         className="flex-1 w-full min-w-0"
                     >
                         {/* Metrics Cards */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                             <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Инвестиции</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Инвестиции</p>
                                     <ContextHint text="Общая сумма начальных вложений, необходимых для запуска проекта." />
                                 </div>
-                                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">{formatCurrency(totalInvestment)}</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white truncate">{formatCurrency(totalInvestment)}</p>
                             </motion.div>
                             <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Прибыль/мес</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Прибыль/мес</p>
                                     <ContextHint text="Чистая прибыль за месяц с учетом выбранного сценария (Доходы - Расходы)." />
                                 </div>
-                                <p className={`text-xl sm:text-2xl font-bold truncate ${monthlyProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                <p className={`text-2xl font-bold truncate ${monthlyProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {formatCurrency(monthlyProfit)}
                                 </p>
                             </motion.div>
                             <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Окупаемость</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Окупаемость</p>
                                     <ContextHint text="Срок возврата инвестиций (в месяцах). Хорошим показателем считается 12-18 месяцев." />
                                 </div>
-                                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white truncate">
                                     {breakevenMonths === Infinity ? '∞' : `${Math.ceil(breakevenMonths)} мес`}
                                 </p>
                             </motion.div>
                             <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">ROI (год)</p>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">ROI (год)</p>
                                     <ContextHint text="Рентабельность инвестиций за год. Показывает, сколько процентов прибыли принесет каждый вложенный рубль." />
                                 </div>
-                                <p className={`text-xl sm:text-2xl font-bold truncate ${roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                <p className={`text-2xl font-bold truncate ${roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {formatPercent(roi)}
                                 </p>
                             </motion.div>
