@@ -260,9 +260,14 @@ export default function DashboardPage() {
                                     <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
                                         У вас пока нет созданных моделей. Выберите шаблон, чтобы начать.
                                     </p>
-                                </button>
-                                        </>
-                    ) : (
+                                    <Link
+                                        href="/templates"
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Создать первый проект</span>
+                                    </Link>
+                                </motion.div>
                     <>
                         <button
                             onClick={(e) => {
@@ -285,24 +290,24 @@ export default function DashboardPage() {
                             <Trash2 className="w-4 h-4" />
                         </button>
                     </>
-                                    )}
-            </div>
+                            )}
+                        </div>
         </div>
-    ))
+            ))
 }
 
-{/* Empty state */ }
-{
-    displayedProjects.length === 0 && activeTab === 'archived' && (
-        <div className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-            <div className="text-center">
-                <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
-            </div>
-        </div>
-    )
-}
-                    </div >
+            {/* Empty state */}
+            {
+                displayedProjects.length === 0 && activeTab === 'archived' && (
+                    <div className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+                        <div className="text-center">
+                            <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                            <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
                 </section >
             </div >
         </div >
