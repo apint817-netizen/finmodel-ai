@@ -70,7 +70,7 @@ export function ForecastCharts({
                                 border: '1px solid #e2e8f0',
                                 borderRadius: '8px',
                             }}
-                            formatter={(value: number) => formatCurrency(value || 0)}
+                            formatter={(value: number | undefined) => formatCurrency(value || 0)}
                         />
                         <Legend />
                         <Bar dataKey="revenue" fill="#10b981" name="Доходы" radius={[8, 8, 0, 0]} />
@@ -95,7 +95,7 @@ export function ForecastCharts({
                                 border: '1px solid #e2e8f0',
                                 borderRadius: '8px',
                             }}
-                            formatter={(value: number) => formatCurrency(value || 0)}
+                            formatter={(value: number | undefined) => formatCurrency(value || 0)}
                         />
                         <Legend />
                         <Line
@@ -142,7 +142,7 @@ export function ForecastCharts({
                                     <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
-                            <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                            <Tooltip formatter={(value: number | string | undefined) => formatCurrency(Number(value) || 0)} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 /**
  * AI Client для интеграции с Antigravity Manager
@@ -47,7 +48,7 @@ export async function analyzeFinancialModel(modelData: any) {
 /**
  * Чат с ИИ-ассистентом
  */
-export async function chatWithAI(messages: Array<{ role: string; content: string }>) {
+export async function chatWithAI(messages: ChatCompletionMessageParam[]) {
     try {
         const response = await aiClient.chat.completions.create({
             model: 'gemini-2.0-flash',
