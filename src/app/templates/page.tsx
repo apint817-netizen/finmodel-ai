@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { BUSINESS_TEMPLATES, BusinessTemplate } from '@/lib/templates';
 import { useProjectStore } from '@/lib/store';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function TemplatesPage() {
     const router = useRouter();
@@ -46,21 +47,24 @@ export default function TemplatesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
             <div className="max-w-7xl mx-auto px-6 py-12">
                 {/* Header */}
                 <div className="mb-12">
-                    <button
-                        onClick={() => router.push('/dashboard')}
-                        className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Назад к проектам
-                    </button>
-                    <h1 className="text-4xl font-bold text-slate-900 mb-3">
+                    <div className="flex items-center justify-between mb-6">
+                        <button
+                            onClick={() => router.push('/dashboard')}
+                            className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Назад к проектам
+                        </button>
+                        <ThemeToggle />
+                    </div>
+                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-3">
                         Выберите шаблон бизнеса
                     </h1>
-                    <p className="text-lg text-slate-600">
+                    <p className="text-lg text-slate-600 dark:text-slate-400">
                         Начните с готовой финансовой модели или создайте свою с нуля
                     </p>
                 </div>
@@ -75,9 +79,9 @@ export default function TemplatesPage() {
                             <div
                                 key={template.id}
                                 onClick={() => setSelectedTemplate(template)}
-                                className={`group relative p-6 bg-white rounded-2xl border-2 cursor-pointer transition-all hover:shadow-xl ${isSelected
+                                className={`group relative p-6 bg-white dark:bg-slate-900 rounded-2xl border-2 cursor-pointer transition-all hover:shadow-xl ${isSelected
                                     ? 'border-blue-500 shadow-lg scale-105'
-                                    : 'border-slate-200 hover:border-blue-300'
+                                    : 'border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
                                     }`}
                             >
                                 {isSelected && (
@@ -89,31 +93,31 @@ export default function TemplatesPage() {
                                 <div className="flex items-start gap-4 mb-4">
                                     <div className="text-5xl">{template.icon}</div>
                                     <div className="flex-1">
-                                        <h3 className="text-xl font-bold text-slate-900 mb-1">
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                                             {template.name}
                                         </h3>
-                                        <p className="text-sm text-slate-500">{template.category}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{template.category}</p>
                                     </div>
                                 </div>
 
-                                <p className="text-sm text-slate-600 mb-4">{template.description}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{template.description}</p>
 
                                 <div className="space-y-2 text-sm">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-slate-600">Инвестиции:</span>
-                                        <span className="font-semibold text-slate-900">
+                                        <span className="text-slate-600 dark:text-slate-400">Инвестиции:</span>
+                                        <span className="font-semibold text-slate-900 dark:text-white">
                                             {formatCurrency(metrics.totalInvestment)} ₽
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-slate-600">Прибыль/мес:</span>
-                                        <span className="font-semibold text-green-600">
+                                        <span className="text-slate-600 dark:text-slate-400">Прибыль/мес:</span>
+                                        <span className="font-semibold text-green-600 dark:text-green-400">
                                             {formatCurrency(metrics.monthlyProfit)} ₽
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-slate-600">Окупаемость:</span>
-                                        <span className="font-semibold text-blue-600">
+                                        <span className="text-slate-600 dark:text-slate-400">Окупаемость:</span>
+                                        <span className="font-semibold text-blue-600 dark:text-blue-400">
                                             {metrics.breakevenMonths} мес
                                         </span>
                                     </div>
@@ -125,9 +129,9 @@ export default function TemplatesPage() {
                     {/* Empty Template */}
                     <div
                         onClick={() => setSelectedTemplate(null)}
-                        className={`group relative p-6 bg-white rounded-2xl border-2 cursor-pointer transition-all hover:shadow-xl ${selectedTemplate === null
+                        className={`group relative p-6 bg-white dark:bg-slate-900 rounded-2xl border-2 cursor-pointer transition-all hover:shadow-xl ${selectedTemplate === null
                             ? 'border-purple-500 shadow-lg scale-105'
-                            : 'border-slate-200 hover:border-purple-300'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700'
                             }`}
                     >
                         {selectedTemplate === null && (
@@ -139,18 +143,18 @@ export default function TemplatesPage() {
                         <div className="flex items-start gap-4 mb-4">
                             <div className="text-5xl">📋</div>
                             <div className="flex-1">
-                                <h3 className="text-xl font-bold text-slate-900 mb-1">
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
                                     Начать с нуля
                                 </h3>
-                                <p className="text-sm text-slate-500">Пустой проект</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Пустой проект</p>
                             </div>
                         </div>
 
-                        <p className="text-sm text-slate-600 mb-4">
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                             Создайте собственную финансовую модель без использования шаблона
                         </p>
 
-                        <div className="space-y-2 text-sm text-slate-500">
+                        <div className="space-y-2 text-sm text-slate-500 dark:text-slate-400">
                             <div className="flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4" />
                                 <span>Полная свобода</span>
@@ -169,22 +173,22 @@ export default function TemplatesPage() {
 
                 {/* Preview Panel */}
                 {selectedTemplate && (
-                    <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 mb-8">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
                             Предпросмотр: {selectedTemplate.name}
                         </h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {/* Investments */}
                             <div>
-                                <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase">
                                     Инвестиции ({selectedTemplate.investments.length})
                                 </h3>
                                 <div className="space-y-2">
                                     {selectedTemplate.investments.map((inv, idx) => (
                                         <div key={idx} className="text-sm">
-                                            <div className="font-medium text-slate-900">{inv.category}</div>
-                                            <div className="text-slate-600">{formatCurrency(inv.amount)} ₽</div>
+                                            <div className="font-medium text-slate-900 dark:text-white">{inv.category}</div>
+                                            <div className="text-slate-600 dark:text-slate-400">{formatCurrency(inv.amount)} ₽</div>
                                         </div>
                                     ))}
                                 </div>
@@ -192,14 +196,14 @@ export default function TemplatesPage() {
 
                             {/* Revenues */}
                             <div>
-                                <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase">
                                     Доходы ({selectedTemplate.revenues.length})
                                 </h3>
                                 <div className="space-y-2">
                                     {selectedTemplate.revenues.map((rev, idx) => (
                                         <div key={idx} className="text-sm">
-                                            <div className="font-medium text-slate-900">{rev.name}</div>
-                                            <div className="text-slate-600">{formatCurrency(rev.monthlyAmount)} ₽/мес</div>
+                                            <div className="font-medium text-slate-900 dark:text-white">{rev.name}</div>
+                                            <div className="text-slate-600 dark:text-slate-400">{formatCurrency(rev.monthlyAmount)} ₽/мес</div>
                                         </div>
                                     ))}
                                 </div>
@@ -207,14 +211,14 @@ export default function TemplatesPage() {
 
                             {/* Expenses */}
                             <div>
-                                <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase">
                                     Расходы ({selectedTemplate.expenses.length})
                                 </h3>
                                 <div className="space-y-2">
                                     {selectedTemplate.expenses.map((exp, idx) => (
                                         <div key={idx} className="text-sm">
-                                            <div className="font-medium text-slate-900">{exp.name}</div>
-                                            <div className="text-slate-600">{formatCurrency(exp.monthlyAmount)} ₽/мес</div>
+                                            <div className="font-medium text-slate-900 dark:text-white">{exp.name}</div>
+                                            <div className="text-slate-600 dark:text-slate-400">{formatCurrency(exp.monthlyAmount)} ₽/мес</div>
                                         </div>
                                     ))}
                                 </div>
