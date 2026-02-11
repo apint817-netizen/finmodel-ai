@@ -23,6 +23,7 @@ interface AIChatProps {
     };
     messages?: Message[];
     onMessagesChange?: (messages: Message[]) => void;
+    onAction?: (action: string, data: any) => void;
 }
 
 const AVAILABLE_MODELS = [
@@ -30,7 +31,7 @@ const AVAILABLE_MODELS = [
     { id: 'gemini-1.5-flash', name: 'Google Gemini (Auto)', provider: 'Google', description: 'Автоматический выбор (Flash/Pro)' },
 ];
 
-export function AIChat({ modelData, messages: externalMessages, onMessagesChange }: AIChatProps) {
+export function AIChat({ modelData, messages: externalMessages, onMessagesChange, onAction }: AIChatProps) {
     const [internalMessages, setInternalMessages] = useState<Message[]>([
         {
             role: 'assistant',
@@ -96,9 +97,27 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
                 throw error;
             }
 
+            let assistantContent = data.message;
+
+            // Check for actions
+            const actionRegex = /\[ACTION_REQUIRED\]([\s\S]*?)\[\/ACTION_REQUIRED\]/;
+            const match = assistantContent.match(actionRegex);
+
+            if (match && onAction) {
+                try {
+                    const actionJson = JSON.parse(match[1]);
+                    onAction(actionJson.action, actionJson.data);
+
+                    // Remove the action block from the message
+                    assistantContent = assistantContent.replace(match[0], '').trim();
+                } catch (e) {
+                    console.error('Failed to execute AI action:', e);
+                }
+            }
+
             const assistantMessage: Message = {
                 role: 'assistant',
-                content: data.message,
+                content: assistantContent || 'Действие выполнено.',
             };
             setMessages([...newMessages, assistantMessage]); // Use unified setter
         } catch (err: any) {

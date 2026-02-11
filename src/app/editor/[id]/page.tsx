@@ -120,6 +120,37 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
         { id: 'forecast' as Tab, name: 'Прогноз', icon: BarChart3 },
     ];
 
+    const handleAIAction = (action: string, data: any) => {
+        if (!currentProject) return;
+
+        try {
+            switch (action) {
+                case 'addInvestment':
+                    addInvestment({
+                        category: data.category || 'Инвестиции',
+                        amount: Number(data.amount) || 0,
+                    });
+                    break;
+                case 'addRevenue':
+                    addRevenue({
+                        name: data.name || 'Доход',
+                        monthlyAmount: Number(data.monthlyAmount) || 0,
+                        type: 'recurring'
+                    });
+                    break;
+                case 'addExpense':
+                    addExpense({
+                        name: data.name || 'Расход',
+                        monthlyAmount: Number(data.monthlyAmount) || 0,
+                        type: 'fixed'
+                    });
+                    break;
+            }
+        } catch (error) {
+            console.error('Error executing AI action:', error);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
             {/* Header */}
@@ -391,7 +422,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: '100%', opacity: 0 }}
                                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                    className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-50 lg:static lg:shadow-none lg:h-[calc(100vh-8rem)] lg:sticky lg:top-24 lg:rounded-2xl lg:border lg:z-auto"
+                                    className="fixed inset-y-0 right-0 w-[85vw] max-w-[380px] sm:w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-50 lg:static lg:shadow-none lg:h-[calc(100vh-8rem)] lg:sticky lg:top-24 lg:rounded-2xl lg:border lg:z-auto"
                                 >
                                     {/* Mobile Close Button */}
                                     <div className="lg:hidden absolute top-4 right-4 z-10">
@@ -418,6 +449,7 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                                             }}
                                             messages={messages}
                                             onMessagesChange={setMessages}
+                                            onAction={handleAIAction}
                                         />
                                     </div>
                                 </motion.div>

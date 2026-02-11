@@ -33,7 +33,32 @@ ${modelData.revenues.map((rev: any) => `- ${rev.name}: ${rev.monthlyAmount.toLoc
 Расходы:
 ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLocaleString('ru-RU')} ₽/мес`).join('\n')}
 
-Отвечайте на русском языке. Давайте конкретные, практичные советы. Будьте дружелюбны и профессиональны.`
+ВАЖНО: Вы можете управлять данными модели. Если пользователь просит добавить или изменить инвестицию, доход или расход, выведите JSON команду в специальном блоке.
+Формат команды:
+[ACTION_REQUIRED]
+{
+  "action": "addInvestment" | "addRevenue" | "addExpense",
+  "data": {
+    "category": "Название",
+    "amount": 1000,
+    "name": "Название" (для доходов/расходов),
+    "monthlyAmount": 1000 (для доходов/расходов)
+  }
+}
+[/ACTION_REQUIRED]
+
+Примеры:
+1. "Добавь инвестицию в ремонт 500 000" ->
+[ACTION_REQUIRED]
+{"action": "addInvestment", "data": {"category": "Ремонт", "amount": 500000}}
+[/ACTION_REQUIRED]
+
+2. "Добавь доход от продаж 100 000" ->
+[ACTION_REQUIRED]
+{"action": "addRevenue", "data": {"name": "Продажи", "monthlyAmount": 100000}}
+[/ACTION_REQUIRED]
+
+Отвечайте на русском языке. Будьте дружелюбны и профессиональны. Если выполняете действие, кратко прокомментируйте его.`
             : 'Вы - опытный финансовый консультант. Отвечайте на русском языке, давайте конкретные советы.';
 
         let assistantMessage = '';
