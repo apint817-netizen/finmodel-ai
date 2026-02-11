@@ -55,11 +55,25 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
     } catch (error: any) {
         console.error('AI Chat Error:', error);
 
+        // Debug info to help user identify configuration issues
+        const isGoogle = !!process.env.GOOGLE_API_KEY;
+        const keyStatus = isGoogle
+            ? `Google Key present (${process.env.GOOGLE_API_KEY?.substring(0, 8)}...)`
+            : 'No Google Key found';
+
         return NextResponse.json(
             {
                 error: 'Ошибка при обращении к ИИ',
                 details: error.message,
-                hint: 'Убедитесь, что Antigravity Manager запущен на http://127.0.0.1:8045',
+                debug: {
+                    provider: isGoogle ? 'Google' : 'Antigravity (Local)',
+                    keyStatus,
+                    model: isGoogle ? 'gemini-1.5-flash' : (process.env.model || 'gpt-4o-mini'),
+                    baseURL: aiClient.baseURL,
+                },
+                hint: isGoogle
+                    ? 'Проверьте API ключ и лимиты Google AI Studio'
+                    : 'Убедитесь, что Antigravity Manager запущен на http://127.0.0.1:8045',
             },
             { status: 500 }
         );

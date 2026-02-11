@@ -6,7 +6,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/chat/completio
  */
 const apiKey = process.env.GOOGLE_API_KEY || process.env.ANTIGRAVITY_API_KEY || 'sk-antigravity';
 const baseURL = process.env.GOOGLE_API_KEY
-    ? 'https://generativelanguage.googleapis.com/v1beta/openai/'
+    ? 'https://generativelanguage.googleapis.com/v1beta/openai'
     : (process.env.ANTIGRAVITY_URL || 'http://127.0.0.1:8045/v1');
 
 export const aiClient = new OpenAI({
