@@ -4,8 +4,13 @@ import { aiClient } from '@/lib/ai-client';
 const client = aiClient;
 
 export async function POST(req: NextRequest) {
+    // Declare variables outside try/catch for scope visibility
+    const isGoogle = !!process.env.GOOGLE_API_KEY;
+    let targetModel = 'gpt-4o-mini';
+
     try {
         const { messages, modelData, model } = await req.json();
+        if (model) targetModel = model;
 
         // Prepare system prompt with financial context
         const systemPrompt = modelData
@@ -31,10 +36,6 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
 Отвечайте на русском языке. Давайте конкретные, практичные советы. Будьте дружелюбны и профессиональны.`
             : 'Вы - опытный финансовый консультант. Отвечайте на русском языке, давайте конкретные советы.';
 
-        // Determine which model to use. 
-        // If using Google API, we MUST use a Gemini model.
-        const isGoogle = !!process.env.GOOGLE_API_KEY;
-        let targetModel = model || 'gpt-4o-mini';
         let assistantMessage = '';
         let usage = undefined;
 
