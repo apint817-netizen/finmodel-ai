@@ -33,6 +33,8 @@ export interface FinancialModel {
     investments: InvestmentItem[];
     revenues: RevenueItem[];
     expenses: ExpenseItem[];
+    aiChatHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
+    status?: 'active' | 'archived';
 }
 
 interface ProjectStore {
@@ -44,6 +46,8 @@ interface ProjectStore {
     setCurrentProject: (projectId: string) => void;
     updateProject: (projectId: string, updates: Partial<FinancialModel>) => void;
     deleteProject: (projectId: string) => void;
+    archiveProject: (projectId: string) => void;
+    restoreProject: (projectId: string) => void;
 
     // Investment actions
     addInvestment: (item: Omit<InvestmentItem, 'id'>) => void;
@@ -77,6 +81,8 @@ export const useProjectStore = create<ProjectStore>()(
                     investments: [],
                     revenues: [],
                     expenses: [],
+                    aiChatHistory: [],
+                    status: 'active',
                 };
 
                 set((state) => ({
@@ -114,6 +120,14 @@ export const useProjectStore = create<ProjectStore>()(
                     currentProject:
                         state.currentProject?.id === projectId ? null : state.currentProject,
                 }));
+            },
+
+            archiveProject: (projectId) => {
+                get().updateProject(projectId, { status: 'archived' });
+            },
+
+            restoreProject: (projectId) => {
+                get().updateProject(projectId, { status: 'active' });
             },
 
             // Investment actions

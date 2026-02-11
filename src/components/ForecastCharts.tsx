@@ -53,10 +53,10 @@ export function ForecastCharts({
     ];
 
     return (
-        <div className="space-y-8">
+        <div id="forecast-charts-container" className="space-y-8">
             {/* Revenue vs Expenses */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
                     Доходы и расходы (12 месяцев)
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -70,7 +70,7 @@ export function ForecastCharts({
                                 border: '1px solid #e2e8f0',
                                 borderRadius: '8px',
                             }}
-                            formatter={(value: number) => formatCurrency(value)}
+                            formatter={(value: number) => formatCurrency(value || 0)}
                         />
                         <Legend />
                         <Bar dataKey="revenue" fill="#10b981" name="Доходы" radius={[8, 8, 0, 0]} />
@@ -80,8 +80,8 @@ export function ForecastCharts({
             </div>
 
             {/* Cumulative Profit */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
                     Накопленная прибыль и баланс
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -95,7 +95,7 @@ export function ForecastCharts({
                                 border: '1px solid #e2e8f0',
                                 borderRadius: '8px',
                             }}
-                            formatter={(value: number) => formatCurrency(value)}
+                            formatter={(value: number) => formatCurrency(value || 0)}
                         />
                         <Legend />
                         <Line
@@ -119,9 +119,9 @@ export function ForecastCharts({
             </div>
 
             {/* Breakdown Pie Chart */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    Структура месячных финансов
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                    Структура доходов и расходов
                 </h3>
                 <div className="flex items-center justify-center">
                     <ResponsiveContainer width="100%" height={300}>
