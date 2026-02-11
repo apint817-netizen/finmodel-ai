@@ -352,9 +352,8 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                         </div>
                     </div>
 
-                    {/* AI Chat Sidebar */}
                     {chatOpen && (
-                        <div className="w-96 bg-white rounded-2xl border border-slate-200 p-6 sticky top-24 h-[calc(100vh-8rem)]">
+                        <div className="w-96 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sticky top-24 h-[calc(100vh-8rem)]">
                             <AIChat
                                 modelData={{
                                     totalInvestment,

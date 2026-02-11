@@ -219,21 +219,21 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
         <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${role === 'user' ? 'mr-2' : 'ml-2'}`}>
             <button
                 onClick={() => handleCopyMessage(content)}
-                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded"
+                className="p-1 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
                 title="Копировать"
             >
                 <Copy className="w-3 h-3" />
             </button>
             <button
                 onClick={() => startEditing(index, content)}
-                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded"
+                className="p-1 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
                 title="Редактировать"
             >
                 <Pencil className="w-3 h-3" />
             </button>
             <button
                 onClick={() => handleDeleteMessage(index)}
-                className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded"
+                className="p-1 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
                 title="Удалить"
             >
                 <Trash2 className="w-3 h-3" />
@@ -348,19 +348,19 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
                                     <textarea
                                         value={editValue}
                                         onChange={(e) => setEditValue(e.target.value)}
-                                        className="w-full p-2 text-slate-900 bg-white border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                                        className="w-full p-2 text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                                     />
                                     <div className="flex gap-2 justify-end">
                                         <button
                                             onClick={cancelEdit}
-                                            className="p-1 text-slate-500 hover:bg-slate-200 rounded"
+                                            className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
                                             title="Отмена"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => saveEdit(index)}
-                                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                                            className="p-1 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded"
                                             title="Сохранить"
                                         >
                                             <Check className="w-4 h-4" />
