@@ -69,7 +69,7 @@ export default function DashboardPage() {
                     <p className="text-lg text-slate-600 dark:text-slate-400">
                         Управляйте вашими финансовыми моделями
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-8 border-b border-slate-200 dark:border-slate-800">
@@ -91,102 +91,200 @@ export default function DashboardPage() {
                     </button>
                 </div>
 
+                {/* Search Bar - Animated */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative mb-8"
+                >
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Поиск проектов..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow shadow-sm"
+                    />
+                </motion.div>
+
                 {/* My Projects */}
                 <section className="mb-16">
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {/* New Project Card (Only in active tab) */}
-                        {activeTab === 'active' && (
-                            <Link
-                                href="/templates"
-                                className="group p-8 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl hover:border-blue-400 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all flex flex-col items-center justify-center min-h-[200px]"
-                            >
-                                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-4 transition-colors">
-                                    <Plus className="w-8 h-8 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                                </div>
-                                <span className="text-lg font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
-                                    Новый проект
-                                </span>
-                            </Link>
-                        )}
-
-                        {/* Existing Projects */}
-                        {displayedProjects.map((project) => (
-                            <div
-                                key={project.id}
-                                className="group p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-xl transition-all relative"
-                            >
-                                <Link href={`/editor/${project.id}`} className="block">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className={`w-12 h-12 bg-gradient-to-br ${project.status === 'archived' ? 'from-slate-400 to-slate-500' : 'from-blue-500 to-purple-600'} rounded-xl flex items-center justify-center`}>
-                                            <BarChart3 className="w-6 h-6 text-white" />
+                    {isLoading ? (
+                        <div className="flex justify-center py-20">
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        </div>
+                    ) : (
+                        <motion.div
+                            variants={container}
+                            initial="hidden"
+                            animate="show"
+                            className="grid md:grid-cols-3 gap-6"
+                        >
+                            {/* New Project Card (Only in active tab) */}
+                            {activeTab === 'active' && (
+                                <motion.div variants={item}>
+                                    <Link
+                                        href="/templates"
+                                        className="group p-8 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl hover:border-blue-400 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all flex flex-col items-center justify-center min-h-[200px]"
+                                    >
+                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-4 transition-colors">
+                                            <Plus className="w-8 h-8 text-slate-400 group-hover:text-blue-600 transition-colors" />
                                         </div>
-                                        <span className="text-xs text-slate-400">
-                                            {new Date(project.updatedAt).toLocaleDateString('ru-RU')}
+                                        <span className="text-lg font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
+                                            Новый проект
                                         </span>
+                                    </Link>
+                                </motion.div>
+                            )}
+
+                            {/* Existing Projects */}
+                            <AnimatePresence>
+                                {displayedProjects.map((project) => (
+                                    <motion.div
+                                        key={project.id}
+                                        variants={item}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                                        className="group p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-xl transition-all relative"
+                                    >
+                                        <Link href={`/editor/${project.id}`} className="block">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className={`w-12 h-12 bg-gradient-to-br ${project.status === 'archived' ? 'from-slate-400 to-slate-500' : 'from-blue-500 to-purple-600'} rounded-xl flex items-center justify-center`}>
+                                                    <BarChart3 className="w-6 h-6 text-white" />
+                                                </div>
+                                                <span className="text-xs text-slate-400">
+                                                    {new Date(project.updatedAt).toLocaleDateString('ru-RU')}
+                                                </span>
+                                            </div>
+                                            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                {project.name}
+                                            </h3>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                                {project.investments.length} инвестиций • {project.revenues.length} доходов
+                                            </p>
+                                        </Link>
+
+                                        {/* Actions */}
+                                        <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex justify-end gap-2">
+                                            {activeTab === 'active' ? (
+                                                <>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            if (confirm('Архивировать этот проект?')) archiveProject(project.id);
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
+                                                        title="В архив"
+                                                    >
+                                                        <Archive className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            restoreProject(project.id);
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                                                        title="Восстановить"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteProject(project.id, e)}
+                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                                        title="Удалить навсегда"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+
+                            {/* Empty state */}
+                            {displayedProjects.length === 0 && activeTab === 'archived' && (
+                                <motion.div
+                                    variants={item}
+                                    className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800"
+                                >
+                                    <div className="text-center">
+                                        <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                                        <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
                                     </div>
-                                    <h3 className="font-semibold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                        {project.name}
-                                    </h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                        {project.investments.length} инвестиций • {project.revenues.length} доходов
+                                </motion.div>
+                            )}
+                            {displayedProjects.length === 0 && activeTab === 'active' && searchQuery === '' && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="md:col-span-3 text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700"
+                                >
+                                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <FileText className="w-8 h-8 text-slate-400" />
+                                    </div>
+                                    <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Нет проектов</h3>
+                                    <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
+                                        У вас пока нет созданных моделей. Выберите шаблон, чтобы начать.
                                     </p>
-                                </Link>
-
-                                {/* Actions */}
-                                <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex justify-end gap-2">
-                                    {activeTab === 'active' ? (
-                                        <>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    if (confirm('Архивировать этот проект?')) archiveProject(project.id);
+                                    if (confirm('Архивировать этот проект?')) archiveProject(project.id);
                                                 }}
-                                                className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
-                                                title="В архив"
+                                    className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
+                                    title="В архив"
                                             >
-                                                <Archive className="w-4 h-4" />
-                                            </button>
+                                    <Archive className="w-4 h-4" />
+                                </button>
                                         </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    restoreProject(project.id);
-                                                }}
-                                                className="p-2 text-slate-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
-                                                title="Восстановить"
-                                            >
-                                                <RefreshCw className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    if (confirm('Удалить проект навсегда? Это действие нельзя отменить.')) deleteProject(project.id);
-                                                }}
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                                                title="Удалить навсегда"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </>
+                    ) : (
+                    <>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                restoreProject(project.id);
+                            }}
+                            className="p-2 text-slate-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+                            title="Восстановить"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (confirm('Удалить проект навсегда? Это действие нельзя отменить.')) deleteProject(project.id);
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            title="Удалить навсегда"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </>
                                     )}
-                                </div>
-                            </div>
-                        ))}
-
-                        {/* Empty state */}
-                        {displayedProjects.length === 0 && activeTab === 'archived' && (
-                            <div className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-                                <div className="text-center">
-                                    <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                                    <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </section>
             </div>
         </div>
+    ))
+}
+
+{/* Empty state */ }
+{
+    displayedProjects.length === 0 && activeTab === 'archived' && (
+        <div className="md:col-span-3 flex items-center justify-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="text-center">
+                <Archive className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-slate-500 dark:text-slate-400 mb-2">Архив пуст</p>
+            </div>
+        </div>
+    )
+}
+                    </div >
+                </section >
+            </div >
+        </div >
     );
 }
