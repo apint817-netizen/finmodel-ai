@@ -196,7 +196,7 @@ export function InvestmentForm({ investments, onAdd, onUpdate, onDelete }: Inves
                                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{item.description}</p>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => setEditingId(item.id)}
                                         className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"

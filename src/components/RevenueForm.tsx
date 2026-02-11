@@ -203,7 +203,7 @@ export function RevenueForm({ revenues, onAdd, onUpdate, onDelete }: RevenueForm
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => setEditingId(item.id)}
                                         className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
