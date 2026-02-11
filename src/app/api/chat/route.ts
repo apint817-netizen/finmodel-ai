@@ -40,59 +40,103 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
         let usage = undefined;
 
         if (isGoogle) {
-            // NATIVE Google Gemini API implementation
-            // This bypasses the OpenAI compatibility layer which was causing 404s
-
-            if (model && model.startsWith('gemini-')) {
-                // If specific model requested but failed, fallback logic could be here.
-                // For now, let's force a known working alias if the user asks for flash
-                targetModel = model === 'gemini-1.5-flash' ? 'gemini-1.5-flash-latest' : model;
-            } else {
-                targetModel = 'gemini-1.5-flash-latest';
-            }
-
-            // Convert OpenAI messages to Gemini format
-            const geminiContents = messages.map((msg: any) => ({
-                role: msg.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: msg.content }]
-            }));
-
-            // Add system prompt if present (Gemini 1.5 supports system_instruction, but for simplicity we can prepend or use proper field)
-            // Ideally system prompt should be separate, but prepending to first user message or using system_instruction is common.
-            // Let's use the proper 'system_instruction' field for Gemini 1.5
-
-            const googleResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: geminiContents,
-                    system_instruction: {
-                        parts: [{ text: systemPrompt }]
-                    },
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 2000,
-                    }
-                })
-            });
-
-            if (!googleResponse.ok) {
-                const errorText = await googleResponse.text();
-                throw new Error(`Google API (Native) Error: ${googleResponse.status} ${googleResponse.statusText} - ${errorText}`);
-            }
-
-            const data = await googleResponse.json();
-            // Extract text from Gemini response
-            assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Извините, не удалось получить ответ.';
-
-            // Map usage roughly if available, or just ignore
-            usage = {
-                prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
-                completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
-                total_tokens: data.usageMetadata?.totalTokenCount || 0
+            // Helper to list models
+            const getAvailableModels = async () => {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GOOGLE_API_KEY}`);
+                    if (!response.ok) return [];
+                    const data = await response.json();
+                    // Filter for models that support generateContent
+                    return (data.models || []).filter((m: any) =>
+                        m.supportedGenerationMethods?.includes('generateContent')
+                    ).map((m: any) => m.name.replace('models/', '')); // Remove 'models/' prefix
+                } catch (e) {
+                    console.error('Failed to list models', e);
+                    return [];
+                }
             };
+
+            // Helper function to call Google API
+            const callGemini = async (modelName: string) => {
+                // Ensure model name doesn't have double 'models/' prefix if we already have it
+                const cleanModelName = modelName.startsWith('models/') ? modelName.replace('models/', '') : modelName;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: messages.map((msg: any) => ({
+                            role: msg.role === 'assistant' ? 'model' : 'user',
+                            parts: [{ text: msg.content }]
+                        })),
+                        system_instruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+                    })
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`${response.status} ${response.statusText} - ${text}`);
+                }
+                return response.json();
+            };
+
+            // 1. Try specific user model first (if Gemini)
+            let modelsToTry = [];
+            if (model && model.startsWith('gemini-')) {
+                modelsToTry.push(model);
+            }
+
+            // 2. Add standard fallbacks just in case listing fails
+            modelsToTry.push('gemini-1.5-flash');
+            modelsToTry.push('gemini-1.5-flash-latest');
+            modelsToTry.push('gemini-pro');
+
+            let lastError;
+            let success = false;
+
+            // First pass: Try hardcoded/requested models
+            for (const modelName of modelsToTry) {
+                try {
+                    const data = await callGemini(modelName);
+                    assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response text';
+                    targetModel = modelName;
+                    usage = { total_tokens: data.usageMetadata?.totalTokenCount || 0 };
+                    success = true;
+                    break;
+                } catch (e: any) {
+                    lastError = e;
+                    if (e.message.includes('404')) continue; // specific not found
+                    if (process.env.NODE_ENV === 'development') console.warn(`Model ${modelName} failed:`, e.message);
+                }
+            }
+
+            // 3. Last Resort: Dynamic Discovery
+            if (!success) {
+                const availableModels = await getAvailableModels();
+                console.log('Available models from Google:', availableModels);
+
+                // Prioritize flash, then pro, then anything else
+                const bestModel = availableModels.find((m: string) => m.includes('flash')) ||
+                    availableModels.find((m: string) => m.includes('pro')) ||
+                    availableModels[0];
+
+                if (bestModel) {
+                    try {
+                        const data = await callGemini(bestModel);
+                        assistantMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response text';
+                        targetModel = bestModel;
+                        usage = { total_tokens: data.usageMetadata?.totalTokenCount || 0 };
+                        success = true;
+                    } catch (e: any) {
+                        lastError = e;
+                    }
+                }
+            }
+
+            if (!success) {
+                throw lastError || new Error('All Google models failed, including dynamically discovered ones.');
+            }
 
         } else {
             // Fallback to OpenAI SDK for local/other providers
