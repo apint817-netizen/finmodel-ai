@@ -43,9 +43,11 @@ ${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLoc
             // This bypasses the OpenAI compatibility layer which was causing 404s
 
             if (model && model.startsWith('gemini-')) {
-                targetModel = model;
+                // If specific model requested but failed, fallback logic could be here.
+                // For now, let's force a known working alias if the user asks for flash
+                targetModel = model === 'gemini-1.5-flash' ? 'gemini-1.5-flash-latest' : model;
             } else {
-                targetModel = 'gemini-1.5-flash';
+                targetModel = 'gemini-1.5-flash-latest';
             }
 
             // Convert OpenAI messages to Gemini format
