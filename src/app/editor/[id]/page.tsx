@@ -131,6 +131,18 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                         amount: Number(data.amount) || 0,
                     });
                     break;
+                case 'updateInvestment':
+                    if (data.id) {
+                        useProjectStore.getState().updateInvestment(data.id, {
+                            ...(data.category && { category: data.category }),
+                            ...(data.amount && { amount: Number(data.amount) }),
+                        });
+                    }
+                    break;
+                case 'deleteInvestment':
+                    if (data.id) deleteInvestment(data.id);
+                    break;
+
                 case 'addRevenue':
                     addRevenue({
                         name: data.name || 'Доход',
@@ -138,12 +150,35 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                         type: 'recurring'
                     });
                     break;
+                case 'updateRevenue':
+                    if (data.id) {
+                        useProjectStore.getState().updateRevenue(data.id, {
+                            ...(data.name && { name: data.name }),
+                            ...(data.monthlyAmount && { monthlyAmount: Number(data.monthlyAmount) }),
+                        });
+                    }
+                    break;
+                case 'deleteRevenue':
+                    if (data.id) deleteRevenue(data.id);
+                    break;
+
                 case 'addExpense':
                     addExpense({
                         name: data.name || 'Расход',
                         monthlyAmount: Number(data.monthlyAmount) || 0,
                         type: 'fixed'
                     });
+                    break;
+                case 'updateExpense':
+                    if (data.id) {
+                        useProjectStore.getState().updateExpense(data.id, {
+                            ...(data.name && { name: data.name }),
+                            ...(data.monthlyAmount && { monthlyAmount: Number(data.monthlyAmount) }),
+                        });
+                    }
+                    break;
+                case 'deleteExpense':
+                    if (data.id) deleteExpense(data.id);
                     break;
             }
         } catch (error) {

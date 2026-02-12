@@ -9,12 +9,47 @@ export async function POST(req: NextRequest) {
     let targetModel = 'gpt-4o-mini';
 
     try {
-        const { messages, modelData, model } = await req.json();
+        const { messages, modelData, model, mode } = await req.json();
         if (model) targetModel = model;
+
+        const aiMode = mode || 'analysis'; // Default to analysis if not specified
+
+        // Define mode-specific instructions
+        let modeInstructions = '';
+        if (aiMode === 'editing') {
+            modeInstructions = `
+ВАЖНО: ВЫ НАХОДИТЕСЬ В РЕЖИМЕ "РЕДАКТОР".
+Ваша главная цель - активно менять модель по запросу пользователя.
+Если пользователь пишет "Поставь аренду 50к" или "Удали налоги" - ВЫ ОБЯЗАНЫ ВЫПОЛНИТЬ ЭТО ДЕЙСТВИЕ через команду JSON.
+Не спрашивайте "Хотите ли вы..." - просто СДЕЛАЙТЕ это.
+Если запрос неясен, уточните, но как только станет ясно - ДЕЙСТВУЙТЕ.
+
+Формат команды (строго соблюдать!):
+[ACTION_REQUIRED]
+{
+  "action": "addInvestment" | "updateInvestment" | "deleteInvestment" | "addRevenue" | "updateRevenue" | "deleteRevenue" | "addExpense" | "updateExpense" | "deleteExpense",
+  "data": {
+    "id": "ID_элемента" (ОБЯЗАТЕЛЬНО для update/delete!),
+    "category": "Название",
+    "amount": 1000,
+    "name": "Название",
+    "monthlyAmount": 1000
+  }
+}
+[/ACTION_REQUIRED]
+`;
+        } else {
+            modeInstructions = `
+ВАЖНО: ВЫ НАХОДИТЕСЬ В РЕЖИМЕ "АНАЛИЗ".
+Вам ЗАПРЕЩЕНО менять данные модели.
+Вы ГОВОРИТЕ о цифрах, анализируете риски, даете советы, но НЕ генерируете JSON команд для изменения данных.
+Если пользователь просит изменить данные, вежливо напомните переключиться в режим "Редактор" (карандаш).
+`;
+        }
 
         // Prepare system prompt with financial context
         const systemPrompt = modelData
-            ? `Вы - опытный финансовый консультант, помогающий пользователю с анализом бизнес-модели.
+            ? `Вы - опытный финансовый консультант.
 
 Текущая финансовая модель:
 - Общие инвестиции: ${modelData.totalInvestment.toLocaleString('ru-RU')} ₽
@@ -25,40 +60,17 @@ export async function POST(req: NextRequest) {
 - Точка безубыточности: ${modelData.breakevenMonths === Infinity ? 'не достижима' : `${Math.ceil(modelData.breakevenMonths)} месяцев`}
 
 Инвестиции:
-${modelData.investments.map((inv: any) => `- ${inv.category}: ${inv.amount.toLocaleString('ru-RU')} ₽`).join('\n')}
+${modelData.investments.map((inv: any) => `- [ID: ${inv.id}] ${inv.category}: ${inv.amount.toLocaleString('ru-RU')} ₽`).join('\n')}
 
 Доходы:
-${modelData.revenues.map((rev: any) => `- ${rev.name}: ${rev.monthlyAmount.toLocaleString('ru-RU')} ₽/мес`).join('\n')}
+${modelData.revenues.map((rev: any) => `- [ID: ${rev.id}] ${rev.name}: ${rev.monthlyAmount.toLocaleString('ru-RU')} ₽/мес`).join('\n')}
 
 Расходы:
-${modelData.expenses.map((exp: any) => `- ${exp.name}: ${exp.monthlyAmount.toLocaleString('ru-RU')} ₽/мес`).join('\n')}
+${modelData.expenses.map((exp: any) => `- [ID: ${exp.id}] ${exp.name}: ${exp.monthlyAmount.toLocaleString('ru-RU')} ₽/мес`).join('\n')}
 
-ВАЖНО: Вы можете управлять данными модели. Если пользователь просит добавить или изменить инвестицию, доход или расход, выведите JSON команду в специальном блоке.
-Формат команды:
-[ACTION_REQUIRED]
-{
-  "action": "addInvestment" | "addRevenue" | "addExpense",
-  "data": {
-    "category": "Название",
-    "amount": 1000,
-    "name": "Название" (для доходов/расходов),
-    "monthlyAmount": 1000 (для доходов/расходов)
-  }
-}
-[/ACTION_REQUIRED]
+${modeInstructions}
 
-Примеры:
-1. "Добавь инвестицию в ремонт 500 000" ->
-[ACTION_REQUIRED]
-{"action": "addInvestment", "data": {"category": "Ремонт", "amount": 500000}}
-[/ACTION_REQUIRED]
-
-2. "Добавь доход от продаж 100 000" ->
-[ACTION_REQUIRED]
-{"action": "addRevenue", "data": {"name": "Продажи", "monthlyAmount": 100000}}
-[/ACTION_REQUIRED]
-
-Отвечайте на русском языке. Будьте дружелюбны и профессиональны. Если выполняете действие, кратко прокомментируйте его.`
+Отвечайте на русском языке. Будьте профессиональны.`
             : 'Вы - опытный финансовый консультант. Отвечайте на русском языке, давайте конкретные советы.';
 
         let assistantMessage = '';

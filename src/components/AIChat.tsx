@@ -49,6 +49,7 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
     const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash');
     const [showModelSelector, setShowModelSelector] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [aiMode, setAiMode] = useState<'analysis' | 'editing'>('analysis');
 
     // Editing state
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -86,6 +87,7 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
                     messages: [...messages, userMessage],
                     modelData,
                     model: selectedModel,
+                    mode: aiMode, // Pass the selected mode
                 }),
             });
 
@@ -300,43 +302,70 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
 
                 {/* Model Selector - Only show if not minimized */}
                 {!isMinimized && (
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowModelSelector(!showModelSelector)}
-                            className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors text-xs"
-                        >
-                            <div className="flex items-center gap-2">
-                                <span className="text-slate-500 dark:text-slate-400">Модель:</span>
-                                <span className="font-medium text-slate-900 dark:text-white truncate">{currentModel.name}</span>
-                            </div>
-                            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showModelSelector ? 'rotate-180' : ''}`} />
-                        </button>
+                    <div className="space-y-2">
+                        {/* Mode Selector */}
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                            <button
+                                onClick={() => setAiMode('analysis')}
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${aiMode === 'analysis'
+                                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                Анализ
+                            </button>
+                            <button
+                                onClick={() => setAiMode('editing')}
+                                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${aiMode === 'editing'
+                                    ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <Pencil className="w-3.5 h-3.5" />
+                                Редактор
+                            </button>
+                        </div>
 
-                        <AnimatePresence>
-                            {showModelSelector && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-20 overflow-hidden"
-                                >
-                                    {AVAILABLE_MODELS.map((model) => (
-                                        <button
-                                            key={model.id}
-                                            onClick={() => {
-                                                setSelectedModel(model.id);
-                                                setShowModelSelector(false);
-                                            }}
-                                            className={`w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${selectedModel === model.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
-                                                }`}
-                                        >
-                                            <div className="font-medium text-xs text-slate-900 dark:text-white">{model.name}</div>
-                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{model.description}</div>
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {/* Model Selector Dropdown Trigger */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowModelSelector(!showModelSelector)}
+                                className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors text-xs"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="text-slate-500 dark:text-slate-400">Модель:</span>
+                                    <span className="font-medium text-slate-900 dark:text-white truncate">{currentModel.name}</span>
+                                </div>
+                                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showModelSelector ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {showModelSelector && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-20 overflow-hidden"
+                                    >
+                                        {AVAILABLE_MODELS.map((model) => (
+                                            <button
+                                                key={model.id}
+                                                onClick={() => {
+                                                    setSelectedModel(model.id);
+                                                    setShowModelSelector(false);
+                                                }}
+                                                className={`w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${selectedModel === model.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                                                    }`}
+                                            >
+                                                <div className="font-medium text-xs text-slate-900 dark:text-white">{model.name}</div>
+                                                <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{model.description}</div>
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 )}
             </div>
