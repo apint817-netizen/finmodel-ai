@@ -101,21 +101,23 @@ export function AIChat({ modelData, messages: externalMessages, onMessagesChange
 
             let assistantContent = data.message;
 
-            // Check for actions
-            const actionRegex = /\[ACTION_REQUIRED\]([\s\S]*?)\[\/ACTION_REQUIRED\]/;
-            const match = assistantContent.match(actionRegex);
+            // Check for actions (handle multiple actions)
+            const actionRegex = /\[ACTION_REQUIRED\]([\s\S]*?)\[\/ACTION_REQUIRED\]/g;
+            let match;
 
-            if (match && onAction) {
-                try {
-                    const actionJson = JSON.parse(match[1]);
-                    onAction(actionJson.action, actionJson.data);
-
-                    // Remove the action block from the message
-                    assistantContent = assistantContent.replace(match[0], '').trim();
-                } catch (e) {
-                    console.error('Failed to execute AI action:', e);
+            while ((match = actionRegex.exec(assistantContent)) !== null) {
+                if (onAction) {
+                    try {
+                        const actionJson = JSON.parse(match[1]);
+                        onAction(actionJson.action, actionJson.data);
+                    } catch (e) {
+                        console.error('Failed to execute AI action:', e);
+                    }
                 }
             }
+
+            // Remove all action blocks from the message
+            assistantContent = assistantContent.replace(actionRegex, '').trim();
 
             const assistantMessage: Message = {
                 role: 'assistant',
