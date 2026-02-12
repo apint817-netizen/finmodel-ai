@@ -9,7 +9,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
         }
 
-        const isGoogle = !!process.env.GOOGLE_API_KEY;
+        const googleKey = process.env.GOOGLE_API_KEY;
+        const openaiKey = process.env.OPENAI_API_KEY;
+
+        if (!googleKey && !openaiKey) {
+            return NextResponse.json(
+                { error: 'API Keys missing. Configure GOOGLE_API_KEY or OPENAI_API_KEY in Vercel.' },
+                { status: 500 } // Or 401/500
+            );
+        }
+
+        const isGoogle = !!googleKey;
         let generatedData = null;
 
         const systemPrompt = `

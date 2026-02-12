@@ -34,7 +34,10 @@ export default function DashboardPage() {
                 body: JSON.stringify({ prompt: aiPrompt }),
             });
 
-            if (!response.ok) throw new Error('Generation failed');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.details || 'Ошибка сервера при генерации');
+            }
 
             const data = await response.json();
 
@@ -70,9 +73,12 @@ export default function DashboardPage() {
 
             router.push(`/editor/${project.id}`);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Generation errors:', error);
-            alert('Не удалось создать модель. Попробуйте еще раз.');
+            // Try to extract the actual error message sent from the server
+            // The fetch block above throws "Generation failed" for non-ok responses,
+            // but doesn't read the body. Let's fix that.
+            alert(`Ошибка: ${error.message || 'Не удалось создать модель'}`);
         } finally {
             setIsGenerating(false);
         }
