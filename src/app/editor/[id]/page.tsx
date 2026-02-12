@@ -421,14 +421,13 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
-                                                    <div className="inline-flex items-center justify-center w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
-                                                        <TrendingUp className="w-6 h-6 text-slate-400" />
-                                                    </div>
-                                                    <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">Графики в разработке</h3>
-                                                    <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                                                        Визуализация данных будет доступна в следующем обновлении для поддержки новых сценариев.
-                                                    </p>
+                                                <div className="mt-8">
+                                                    <ForecastCharts
+                                                        monthlyRevenue={monthlyRevenue}
+                                                        monthlyExpenses={monthlyExpenses}
+                                                        monthlyProfit={monthlyProfit}
+                                                        totalInvestment={totalInvestment}
+                                                    />
                                                 </div>
                                             </div>
                                         )}
