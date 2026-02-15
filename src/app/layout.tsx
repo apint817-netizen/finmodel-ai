@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: 'Создавайте, анализируйте и оптимизируйте финансовые модели для любого бизнеса с помощью искусственного интеллекта',
 };
 
+import { NextAuthProvider } from '@/components/providers/SessionProvider';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -15,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className="antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-        </ThemeProvider>
+        <NextAuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            {children}
+          </ThemeProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

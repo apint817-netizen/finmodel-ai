@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useProjectStore } from '@/lib/store';
 import { useState } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { UserButton } from '@/components/UserButton';
 
 const templates = [
     { id: 'gaming', name: 'Игровая комната', icon: Gamepad2, color: 'from-purple-500 to-purple-600' },
@@ -135,6 +136,7 @@ export default function DashboardPage() {
                     </Link>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
+                        <UserButton />
                         <button
                             onClick={createNewProject}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm hover:shadow"

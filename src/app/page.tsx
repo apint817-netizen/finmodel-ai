@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, Brain, FileSpreadsheet, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { DashboardPreview } from '@/components/DashboardPreview';
+import { UserButton } from '@/components/UserButton';
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -58,6 +59,7 @@ export default function HomePage() {
           >
             Начать
           </Link>
+          <UserButton />
         </div>
       </motion.header>
 
