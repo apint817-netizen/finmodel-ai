@@ -4,32 +4,37 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { BUSINESS_TEMPLATES, BusinessTemplate } from '@/lib/templates';
-import { useProjectStore } from '@/lib/store';
+import { createProject as createProjectAction } from '@/app/actions/project';
+import { bulkCreateItems } from '@/app/actions/items';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function TemplatesPage() {
     const router = useRouter();
     const [selectedTemplate, setSelectedTemplate] = useState<BusinessTemplate | null>(null);
-    const { createProject, updateProject } = useProjectStore();
 
-    const createProjectFromTemplate = (template: BusinessTemplate | null) => {
-        // Create project using store
-        const newProject = createProject(
-            template ? `${template.name} - Новый проект` : 'Новый проект',
-            template?.id || 'empty'
-        );
+    const createProjectFromTemplate = async (template: BusinessTemplate | null) => {
+        try {
+            // Create project in DB
+            const newProject = await createProjectAction(
+                template ? `${template.name} - Новый проект` : 'Новый проект',
+                template?.id || 'empty'
+            );
 
-        // If template selected, populate with template data
-        if (template) {
-            updateProject(newProject.id, {
-                investments: template.investments.map(inv => ({ ...inv, id: crypto.randomUUID() })),
-                revenues: template.revenues.map(rev => ({ ...rev, id: crypto.randomUUID() })),
-                expenses: template.expenses.map(exp => ({ ...exp, id: crypto.randomUUID() })),
-            });
+            // If template selected, populate with template data via Server Action
+            if (template) {
+                await bulkCreateItems(newProject.id, {
+                    investments: template.investments.map(inv => ({ category: inv.category, amount: inv.amount })),
+                    revenues: template.revenues.map(rev => ({ name: rev.name, monthlyAmount: rev.monthlyAmount })),
+                    expenses: template.expenses.map(exp => ({ name: exp.name, monthlyAmount: exp.monthlyAmount })),
+                });
+            }
+
+            // Navigate to editor (it will load data from DB)
+            router.push(`/editor/${newProject.id}`);
+        } catch (error) {
+            console.error('Failed to create project:', error);
+            alert('Не удалось создать проект. Попробуйте еще раз.');
         }
-
-        // Navigate to editor
-        router.push(`/editor/${newProject.id}`);
     };
 
     const calculateMetrics = (template: BusinessTemplate) => {

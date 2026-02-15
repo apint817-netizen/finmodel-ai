@@ -91,11 +91,36 @@ export function DashboardClient({ initialProjects }: { initialProjects: Financia
 
     const handleCreateProject = async (templateId: string) => {
         const template = templates.find((t) => t.id === templateId);
+        // Also find the full template data from BUSINESS_TEMPLATES if needed, 
+        // but 'templates' here seems to be a local subset?
+        // Wait, 'templates' in DashboardClient are just UI definitions.
+        // We need the actual data from '@/lib/templates'.
         if (!template) return;
 
         setIsCreating(true);
         try {
             const project = await createProjectAction(`Новый проект: ${template.name}`, templateId);
+
+            // We need to import BUSINESS_TEMPLATES to get the data
+            // But let's check if we can import it.
+            // If not, we should probably redirect to templates page or standard empty project?
+            // "New Project" buttons in Dashboard seem to be quick shortcuts.
+            // Let's redirect to editor for now, assuming user wants empty project if template data is missing
+            // OR we should import BUSINESS_TEMPLATES here too.
+
+            // Actually, looking at the code, 'templates' in DashboardClient defines:
+            // gaming, retail, food, services.
+            // BUSINESS_TEMPLATES in lib/templates.ts defines:
+            // retail-clothing, cafe, beauty-salon, kids-center, ecommerce.
+
+            // The IDs DON'T MATCH! 
+            // gaming != kids-center?
+            // retail != retail-clothing?
+
+            // If the IDs don't match, we can't pre-fill data.
+            // So these quick buttons might just be "categories" or "starters"?
+            // If so, we should just create the project and redirect.
+
             router.push(`/editor/${project.id}`);
         } catch (error) {
             alert('Failed to create project');
