@@ -32,8 +32,8 @@ export default function LoginPage() {
                 setError('Неверный Email или пароль')
                 setIsLoading(false)
             } else {
-                router.push('/dashboard')
-                router.refresh()
+                // Force hard navigation to ensure session cookie is recognized by middleware and client
+                window.location.assign('/dashboard')
             }
         } catch (error) {
             setError('Произошла ошибка при входе')
