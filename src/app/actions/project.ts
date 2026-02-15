@@ -4,6 +4,14 @@ import { auth } from '@/auth'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
+const serializeProject = (project: any) => ({
+    ...project,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+    aiChatHistory: (project.aiChatHistory as any) || [],
+    status: project.status as 'active' | 'archived',
+})
+
 export async function getProjects() {
     const session = await auth()
     if (!session?.user?.id) return []
@@ -12,10 +20,6 @@ export async function getProjects() {
         const projects = await prisma.project.findMany({
             where: {
                 userId: session.user.id,
-                status: 'active' // Filter by active by default? Or return all? 
-                // Store filters by active/archived. Let's return all for now to let client filter?
-                // Or maybe the dashboard only needs active?
-                // The dashboard filters client side. Let's return all.
             },
             include: {
                 investments: true,
@@ -26,7 +30,7 @@ export async function getProjects() {
                 updatedAt: 'desc',
             },
         })
-        return projects
+        return projects.map(serializeProject)
     } catch (error) {
         console.error('Failed to fetch projects:', error)
         return []
@@ -49,7 +53,7 @@ export async function getProject(id: string) {
                 expenses: true,
             },
         })
-        return project
+        return project ? serializeProject(project) : null
     } catch (error) {
         console.error('Failed to fetch project:', error)
         return null
@@ -65,10 +69,9 @@ export async function createProject(name: string, template: string) {
             data: {
                 userId: session.user.id,
                 name,
-                currency: 'RUB', // Default
-                // template field is missing in schema, we might need to store it in description or add a column
-                // For now, let's just store it in description or ignore it if it's just for UI init.
-                // Actually, let's update schema to add 'template' and 'status' to match store.ts
+                currency: 'RUB',
+                template, // Included in schema now
+                status: 'active'
             },
             include: {
                 investments: true,
@@ -77,7 +80,7 @@ export async function createProject(name: string, template: string) {
             }
         })
         revalidatePath('/dashboard')
-        return project
+        return serializeProject(project)
     } catch (error) {
         console.error('Failed to create project:', error)
         throw new Error('Failed to create project')
@@ -92,7 +95,7 @@ export async function deleteProject(id: string) {
         await prisma.project.delete({
             where: {
                 id,
-                userId: session.user.id, // Security: Ensure user owns project
+                userId: session.user.id,
             },
         })
         revalidatePath('/dashboard')
