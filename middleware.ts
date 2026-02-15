@@ -1,15 +1,9 @@
-import { auth } from "@/auth"
+import NextAuth from "next-auth"
+import { authConfig } from "./src/auth.config"
 
-export default auth((req) => {
-    const isLoggedIn = !!req.auth
-    const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard') || req.nextUrl.pathname.startsWith('/editor')
+const { auth } = NextAuth(authConfig)
 
-    if (isOnDashboard) {
-        if (isLoggedIn) return
-        return Response.redirect(new URL('/login', req.nextUrl))
-    }
-})
-
+export default auth
 export const config = {
     matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
 }
