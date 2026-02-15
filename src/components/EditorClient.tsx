@@ -1,0 +1,620 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useProjectStore, FinancialModel } from '@/lib/store';
+import {
+    BarChart3,
+    ArrowLeft,
+    TrendingUp,
+    DollarSign,
+    CreditCard,
+    MessageSquare,
+    Loader2
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState, useEffect, useMemo } from 'react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import {
+    calculateTotalInvestment,
+    calculateMonthlyRevenue,
+    calculateMonthlyExpenses,
+    calculateMonthlyProfit,
+    calculateBreakevenMonths,
+    calculateROI,
+    calculateYearlyProfit,
+    formatCurrency,
+    formatPercent,
+} from '@/lib/calculations';
+import {
+    addInvestment as addInvestmentAction,
+    updateInvestment as updateInvestmentAction,
+    deleteInvestment as deleteInvestmentAction,
+    addRevenue as addRevenueAction,
+    updateRevenue as updateRevenueAction,
+    deleteRevenue as deleteRevenueAction,
+    addExpense as addExpenseAction,
+    updateExpense as updateExpenseAction,
+    deleteExpense as deleteExpenseAction
+} from '@/app/actions/items';
+
+import { ForecastCharts } from '@/components/ForecastCharts';
+import { AIChat } from '@/components/AIChat';
+import { InvestmentForm } from '@/components/InvestmentForm';
+import { RevenueForm } from '@/components/RevenueForm';
+import { ExpenseForm } from '@/components/ExpenseForm';
+import { ExportButton } from '@/components/ExportButton';
+import { ScenarioSelector, Scenario } from '@/components/ScenarioSelector';
+import { ContextHint } from '@/components/ContextHint';
+
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+
+type Tab = 'investments' | 'revenues' | 'expenses' | 'forecast';
+
+export function EditorClient({ initialProject }: { initialProject: FinancialModel }) {
+    const router = useRouter();
+    const {
+        currentProject,
+        setProjects,
+        setCurrentProject,
+        updateProject,
+        addInvestment: addInvestmentStore,
+        updateInvestment: updateInvestmentStore,
+        deleteInvestment: deleteInvestmentStore,
+        addRevenue: addRevenueStore,
+        updateRevenue: updateRevenueStore,
+        deleteRevenue: deleteRevenueStore,
+        addExpense: addExpenseStore,
+        updateExpense: updateExpenseStore,
+        deleteExpense: deleteExpenseStore
+    } = useProjectStore();
+    const [activeTab, setActiveTab] = useState<Tab>('investments');
+    const [chatOpen, setChatOpen] = useState(true);
+    const [scenario, setScenario] = useState<Scenario>('realistic');
+
+    // Hydrate store
+    useEffect(() => {
+        if (initialProject) {
+            setProjects([initialProject]);
+            setCurrentProject(initialProject.id);
+        }
+    }, [initialProject, setProjects, setCurrentProject]);
+
+    // Sync local messages with store
+    const messages = currentProject?.aiChatHistory || [];
+    const setMessages = (newMessages: Array<{ role: 'user' | 'assistant'; content: string }> | ((prev: Array<{ role: 'user' | 'assistant'; content: string }>) => Array<{ role: 'user' | 'assistant'; content: string }>)) => {
+        if (!currentProject) return;
+
+        const updatedMessages = typeof newMessages === 'function' ? newMessages(messages) : newMessages;
+        updateProject(currentProject.id, { aiChatHistory: updatedMessages });
+    };
+
+    // Scenario Multipliers
+    const multipliers = useMemo(() => {
+        switch (scenario) {
+            case 'optimistic': return { revenue: 1.2, expense: 0.95 };
+            case 'pessimistic': return { revenue: 0.8, expense: 1.1 };
+            default: return { revenue: 1, expense: 1 };
+        }
+    }, [scenario]);
+
+    // Show loading state while switching projects or if not found yet (should not happen if initialProject provided, unless hydration lag)
+    if (!currentProject || currentProject.id !== initialProject.id) {
+        // Keep showing initial project if store isn't ready? 
+        // Or just show loader?
+        // If we passed initialProject, we can render it directly? 
+        // But sub-components rely on store...
+        // Let's rely on hydration.
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+                <div className="text-center">
+                    <Loader2 className="animate-spin text-blue-600 w-12 h-12 mx-auto mb-4" />
+                    <p className="text-slate-600 dark:text-slate-400">Загрузка проекта...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Calculations with Scenarios
+    const baseTotalInvestment = calculateTotalInvestment(currentProject.investments);
+    const baseMonthlyRevenue = calculateMonthlyRevenue(currentProject.revenues);
+    const baseMonthlyExpenses = calculateMonthlyExpenses(currentProject.expenses);
+
+    const monthlyRevenue = baseMonthlyRevenue * multipliers.revenue;
+    const monthlyExpenses = baseMonthlyExpenses * multipliers.expense;
+    const totalInvestment = baseTotalInvestment; // Usually fixed, but could be adjusted similarly
+
+    const monthlyProfit = calculateMonthlyProfit(monthlyRevenue, monthlyExpenses);
+    const yearlyProfit = calculateYearlyProfit(monthlyProfit);
+    const breakevenMonths = calculateBreakevenMonths(totalInvestment, monthlyProfit);
+    const roi = calculateROI(totalInvestment, yearlyProfit);
+
+    const tabs = [
+        { id: 'investments' as Tab, name: 'Инвестиции', icon: DollarSign },
+        { id: 'revenues' as Tab, name: 'Доходы', icon: TrendingUp },
+        { id: 'expenses' as Tab, name: 'Расходы', icon: CreditCard },
+        { id: 'forecast' as Tab, name: 'Прогноз', icon: BarChart3 },
+    ];
+
+    // --- Handlers with Server Actions ---
+
+    const handleAddInvestment = async (data: { category: string, amount: number, description?: string }) => {
+        if (!currentProject) return;
+        // Optimistic
+        const tempId = crypto.randomUUID();
+        addInvestmentStore({ ...data, id: tempId });
+        // Server
+        try {
+            await addInvestmentAction(currentProject.id, data);
+        } catch (error) {
+            console.error('Failed to add investment', error);
+            deleteInvestmentStore(tempId); // Rollback
+            alert('Не удалось сохранить инвестицию');
+        }
+    };
+
+    const handleUpdateInvestment = async (id: string, updates: any) => {
+        if (!currentProject) return;
+        // Optimistic
+        updateInvestmentStore(id, updates);
+        // Server
+        try {
+            await updateInvestmentAction(id, currentProject.id, updates);
+        } catch (error) {
+            console.error('Failed to update investment', error);
+            // Rollback? Complicated without previous state history. 
+            // For now, let's assume it works or custom error handling.
+        }
+    };
+
+    const handleDeleteInvestment = async (id: string) => {
+        if (!currentProject) return;
+        // Optimistic
+        deleteInvestmentStore(id);
+        // Server
+        try {
+            await deleteInvestmentAction(id, currentProject.id);
+        } catch (error) {
+            console.error('Failed to delete investment', error);
+            alert('Не удалось удалить инвестицию');
+        }
+    };
+
+    const handleAddRevenue = async (data: { name: string, monthlyAmount: number }) => {
+        if (!currentProject) return;
+        // Optimistic
+        const tempId = crypto.randomUUID();
+        addRevenueStore({ ...data, id: tempId, growthRate: 0, type: 'recurring' });
+        // Server
+        try {
+            await addRevenueAction(currentProject.id, data);
+        } catch (error) {
+            console.error('Failed to add revenue', error);
+            deleteRevenueStore(tempId);
+            alert('Не удалось сохранить доход');
+        }
+    };
+
+    const handleUpdateRevenue = async (id: string, updates: any) => {
+        if (!currentProject) return;
+        updateRevenueStore(id, updates);
+        try {
+            await updateRevenueAction(id, currentProject.id, updates);
+        } catch (error) {
+            console.error('Failed to update revenue', error);
+        }
+    };
+
+    const handleDeleteRevenue = async (id: string) => {
+        if (!currentProject) return;
+        deleteRevenueStore(id);
+        try {
+            await deleteRevenueAction(id, currentProject.id);
+        } catch (error) {
+            console.error('Failed to delete revenue', error);
+        }
+    };
+
+    const handleAddExpense = async (data: { name: string, monthlyAmount: number }) => {
+        if (!currentProject) return;
+        // Optimistic
+        const tempId = crypto.randomUUID();
+        addExpenseStore({ ...data, id: tempId, growthRate: 0, type: 'fixed' });
+        // Server
+        try {
+            await addExpenseAction(currentProject.id, data);
+        } catch (error) {
+            console.error('Failed to add expense', error);
+            deleteExpenseStore(tempId);
+            alert('Не удалось сохранить расход');
+        }
+    };
+
+    const handleUpdateExpense = async (id: string, updates: any) => {
+        if (!currentProject) return;
+        updateExpenseStore(id, updates);
+        try {
+            await updateExpenseAction(id, currentProject.id, updates);
+        } catch (error) {
+            console.error('Failed to update expense', error);
+        }
+    };
+
+    const handleDeleteExpense = async (id: string) => {
+        if (!currentProject) return;
+        deleteExpenseStore(id);
+        try {
+            await deleteExpenseAction(id, currentProject.id);
+        } catch (error) {
+            console.error('Failed to delete expense', error);
+        }
+    };
+
+
+    const handleAIAction = (action: string, data: any) => {
+        if (!currentProject) return;
+
+        try {
+            switch (action) {
+                case 'addInvestment':
+                    handleAddInvestment({
+                        category: data.category || 'Инвестиции',
+                        amount: Number(data.amount) || 0,
+                    });
+                    break;
+                case 'updateInvestment':
+                    if (data.id) handleUpdateInvestment(data.id, {
+                        ...(data.category && { category: data.category }),
+                        ...(data.amount && { amount: Number(data.amount) }),
+                    });
+                    break;
+                case 'deleteInvestment':
+                    if (data.id) handleDeleteInvestment(data.id);
+                    break;
+
+                case 'addRevenue':
+                    handleAddRevenue({
+                        name: data.name || 'Доход',
+                        monthlyAmount: Number(data.monthlyAmount) || 0,
+                    });
+                    break;
+                case 'updateRevenue':
+                    if (data.id) handleUpdateRevenue(data.id, {
+                        ...(data.name && { name: data.name }),
+                        ...(data.monthlyAmount && { monthlyAmount: Number(data.monthlyAmount) }),
+                    });
+                    break;
+                case 'deleteRevenue':
+                    if (data.id) handleDeleteRevenue(data.id);
+                    break;
+
+                case 'addExpense':
+                    handleAddExpense({
+                        name: data.name || 'Расход',
+                        monthlyAmount: Number(data.monthlyAmount) || 0,
+                    });
+                    break;
+                case 'updateExpense':
+                    if (data.id) handleUpdateExpense(data.id, {
+                        ...(data.name && { name: data.name }),
+                        ...(data.monthlyAmount && { monthlyAmount: Number(data.monthlyAmount) }),
+                    });
+                    break;
+                case 'deleteExpense':
+                    if (data.id) handleDeleteExpense(data.id);
+                    break;
+            }
+        } catch (error) {
+            console.error('Error executing AI action:', error);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+            {/* Header */}
+            <header className="border-b border-slate-200/50 dark:border-slate-800/50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 sticky top-0 z-40 supports-[backdrop-filter]:bg-white/60">
+                <div className="max-w-[1920px] mx-auto px-4 sm:px-6 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 sm:gap-3 overflow-hidden flex-1">
+                            <Link
+                                href="/dashboard"
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+                            >
+                                <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                            </Link>
+                            <div className="min-w-0 flex-1">
+                                <h1 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white truncate">{currentProject.name}</h1>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate hidden sm:block">
+                                    Обновлено {new Date(currentProject.updatedAt).toLocaleDateString('ru-RU')}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="hidden md:block">
+                                <ThemeToggle />
+                            </div>
+                            <div className="hidden lg:block">
+                                <ScenarioSelector value={scenario} onChange={setScenario} />
+                            </div>
+                            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden lg:block"></div>
+                            <div className="hidden sm:block">
+                                <ExportButton
+                                    project={currentProject}
+                                    aiMessages={currentProject.aiChatHistory}
+                                />
+                            </div>
+
+                            <button
+                                onClick={() => setChatOpen(!chatOpen)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${chatOpen
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                                <span className="hidden leading-none md:inline">ИИ</span>
+                            </button>
+                        </div>
+                    </div>
+                    {/* Mobile Controls Row - Scrollable */}
+                    <div className="flex items-center gap-3 mt-3 sm:hidden overflow-x-auto pb-2 no-scrollbar">
+                        <div className="shrink-0"><ThemeToggle /></div>
+                        <div className="shrink-0"><ScenarioSelector value={scenario} onChange={setScenario} /></div>
+                        <div className="shrink-0">
+                            <ExportButton
+                                project={currentProject}
+                                aiMessages={currentProject.aiChatHistory}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="max-w-[1920px] mx-auto px-4 sm:px-6 py-6 pb-24 lg:pb-6">
+                <div className="flex flex-col lg:flex-row gap-6 items-start">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="flex-1 w-full min-w-0"
+                    >
+                        {/* Metrics Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                            <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Инвестиции</p>
+                                    <ContextHint text="Общая сумма начальных вложений, необходимых для запуска проекта." />
+                                </div>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white truncate">{formatCurrency(totalInvestment)}</p>
+                            </motion.div>
+                            <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Прибыль/мес</p>
+                                    <ContextHint text="Чистая прибыль за месяц с учетом выбранного сценария (Доходы - Расходы)." />
+                                </div>
+                                <p className={`text-2xl font-bold truncate ${monthlyProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    {formatCurrency(monthlyProfit)}
+                                </p>
+                            </motion.div>
+                            <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Окупаемость</p>
+                                    <ContextHint text="Срок возврата инвестиций (в месяцах). Хорошим показателем считается 12-18 месяцев." />
+                                </div>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white truncate">
+                                    {breakevenMonths === Infinity ? '∞' : `${Math.ceil(breakevenMonths)} мес`}
+                                </p>
+                            </motion.div>
+                            <motion.div whileHover={{ y: -2 }} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative group">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">ROI (год)</p>
+                                    <ContextHint text="Рентабельность инвестиций за год. Показывает, сколько процентов прибыли принесет каждый вложенный рубль." />
+                                </div>
+                                <p className={`text-2xl font-bold truncate ${roi >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    {formatPercent(roi)}
+                                </p>
+                            </motion.div>
+                        </div>
+
+                        {/* Tabs Navigation */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mb-6">
+                            <div className="border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
+                                <div className="flex min-w-max">
+                                    {tabs.map((tab) => {
+                                        const Icon = tab.icon;
+                                        return (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 transition-all relative ${activeTab === tab.id
+                                                    ? 'text-blue-600 dark:text-blue-400'
+                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                                    }`}
+                                            >
+                                                <Icon className="w-4 h-4" />
+                                                <span className="font-medium text-sm">{tab.name}</span>
+                                                {activeTab === tab.id && (
+                                                    <motion.div
+                                                        layoutId="activeTab"
+                                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                                                    />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950/50">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={activeTab}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        {/* Investments Tab */}
+                                        {activeTab === 'investments' && (
+                                            <InvestmentForm
+                                                investments={currentProject.investments}
+                                                onAdd={handleAddInvestment}
+                                                onUpdate={handleUpdateInvestment}
+                                                onDelete={handleDeleteInvestment}
+                                            />
+                                        )}
+
+                                        {/* Revenues Tab */}
+                                        {activeTab === 'revenues' && (
+                                            <RevenueForm
+                                                revenues={currentProject.revenues}
+                                                onAdd={handleAddRevenue}
+                                                onUpdate={handleUpdateRevenue}
+                                                onDelete={handleDeleteRevenue}
+                                            />
+                                        )}
+
+                                        {/* Expenses Tab */}
+                                        {activeTab === 'expenses' && (
+                                            <ExpenseForm
+                                                expenses={currentProject.expenses}
+                                                onAdd={handleAddExpense}
+                                                onUpdate={handleUpdateExpense}
+                                                onDelete={handleDeleteExpense}
+                                            />
+                                        )}
+
+                                        {/* Forecast Tab */}
+                                        {activeTab === 'forecast' && (
+                                            <div className="space-y-6">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Финансовый прогноз</h2>
+                                                    <div className="inline-flex items-center text-xs font-medium px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 shadow-sm">
+                                                        Сценарий: <span className="ml-1 text-blue-600 dark:text-blue-400">{scenario === 'realistic' ? 'Реалистичный' : scenario === 'optimistic' ? 'Оптимистичный (+20%)' : 'Пессимистичный (-20%)'}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid md:grid-cols-2 gap-6">
+                                                    {/* Monthly Forecast */}
+                                                    <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                            Ежемесячно
+                                                        </h3>
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-600 dark:text-slate-400">Доходы</span>
+                                                                <span className="font-semibold text-slate-900 dark:text-white text-lg">{formatCurrency(monthlyRevenue)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-600 dark:text-slate-400">Расходы</span>
+                                                                <span className="font-semibold text-slate-900 dark:text-white text-lg">{formatCurrency(monthlyExpenses)}</span>
+                                                            </div>
+                                                            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                                                <span className="text-slate-900 dark:text-white font-medium">Прибыль</span>
+                                                                <span className={`font-bold text-xl ${monthlyProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                    {formatCurrency(monthlyProfit)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Yearly Forecast */}
+                                                    <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
+                                                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                                                            Ежегодно
+                                                        </h3>
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-600 dark:text-slate-400">Доходы</span>
+                                                                <span className="font-semibold text-slate-900 dark:text-white text-lg">{formatCurrency(monthlyRevenue * 12)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-slate-600 dark:text-slate-400">Расходы</span>
+                                                                <span className="font-semibold text-slate-900 dark:text-white text-lg">{formatCurrency(monthlyExpenses * 12)}</span>
+                                                            </div>
+                                                            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                                                <span className="text-slate-900 dark:text-white font-medium">Прибыль</span>
+                                                                <span className={`font-bold text-xl ${yearlyProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                    {formatCurrency(yearlyProfit)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-8">
+                                                    <ForecastCharts
+                                                        monthlyRevenue={monthlyRevenue}
+                                                        monthlyExpenses={monthlyExpenses}
+                                                        monthlyProfit={monthlyProfit}
+                                                        totalInvestment={totalInvestment}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* AI Chat Sidebar / Drawer */}
+                    <AnimatePresence>
+                        {chatOpen && (
+                            <>
+                                {/* Mobile Overlay */}
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setChatOpen(false)}
+                                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden"
+                                />
+
+                                {/* Chat Container */}
+                                <motion.div
+                                    initial={{ x: '100%', opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: '100%', opacity: 0 }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                    className="fixed inset-y-0 right-0 w-[85vw] max-w-[380px] sm:w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-50 lg:static lg:shadow-none lg:h-[calc(100vh-8rem)] lg:sticky lg:top-24 lg:rounded-2xl lg:border lg:z-auto"
+                                >
+                                    {/* Mobile Close Button */}
+                                    <div className="lg:hidden absolute top-4 right-4 z-10">
+                                        <button
+                                            onClick={() => setChatOpen(false)}
+                                            className="p-2 bg-white/10 backdrop-blur-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-full"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="h-full">
+                                        <AIChat
+                                            modelData={{
+                                                totalInvestment,
+                                                monthlyRevenue,
+                                                monthlyExpenses,
+                                                monthlyProfit,
+                                                roi,
+                                                breakevenMonths,
+                                                investments: currentProject.investments,
+                                                revenues: currentProject.revenues,
+                                                expenses: currentProject.expenses,
+                                            }}
+                                            messages={messages}
+                                            onMessagesChange={setMessages}
+                                            onAction={handleAIAction}
+                                        />
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </main>
+        </div>
+    );
+}

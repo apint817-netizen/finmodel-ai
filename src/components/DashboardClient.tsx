@@ -4,27 +4,12 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, BarChart3, Coffee, Scissors, Gamepad2, ShoppingCart, Archive, Trash2, RefreshCw, TrendingUp, Search, Loader2, Copy, FileText, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useProjectStore } from '@/lib/store';
-import { useState } from 'react';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { UserButton } from '@/components/UserButton';
-
-const templates = [
-    { id: 'gaming', name: 'Игровая комната', icon: Gamepad2, color: 'from-purple-500 to-purple-600' },
-    { id: 'retail', name: 'Розничная торговля', icon: ShoppingCart, color: 'from-blue-500 to-blue-600' },
-    { id: 'food', name: 'Кафе / Ресторан', icon: Coffee, color: 'from-orange-500 to-orange-600' },
-    { id: 'services', name: 'Услуги', icon: Scissors, color: 'from-green-500 to-green-600' },
-];
-
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, BarChart3, Coffee, Scissors, Gamepad2, ShoppingCart, Archive, Trash2, RefreshCw, TrendingUp, Search, Loader2, Copy, FileText, Sparkles } from 'lucide-react';
-import Link from 'next/link';
 import { useProjectStore, FinancialModel } from '@/lib/store';
 import { useState, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { UserButton } from '@/components/UserButton';
 import { createProject as createProjectAction, deleteProject as deleteProjectAction } from '@/app/actions/project';
+import { bulkCreateItems } from '@/app/actions/items';
 
 const templates = [
     { id: 'gaming', name: 'Игровая комната', icon: Gamepad2, color: 'from-purple-500 to-purple-600' },
@@ -33,8 +18,10 @@ const templates = [
     { id: 'services', name: 'Услуги', icon: Scissors, color: 'from-green-500 to-green-600' },
 ];
 
+
+
 export function DashboardClient({ initialProjects }: { initialProjects: FinancialModel[] }) {
-    const { projects, setProjects, deleteProject } = useProjectStore();
+    const { projects, setProjects, deleteProject, archiveProject, restoreProject } = useProjectStore();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
     const [searchQuery, setSearchQuery] = useState('');
@@ -68,49 +55,15 @@ export function DashboardClient({ initialProjects }: { initialProjects: Financia
             // Create project via Server Action
             const project = await createProjectAction(data.name || 'AI Project', 'ai-generated');
 
-            // Populate with generated data via updateProject (store) and we should probably sync this to DB too.
-            // But currently the API returns data that needs to be put into the project.
-            // We need to implement syncing for investments/revenues/expenses to DB.
-            // For now, let's just redirect to editor, and the editor will handle saving?
-            // Wait, the editor uses the store. If we redirect, the store will be hydrated from server (which has empty arrays).
-            // So we need to SAVE the generated data to the DB before redirecting.
-            // This requires backend API endpoints or Server Actions for items.
-            // FIXME: Start with local store update, but we need a way to persist it.
-            // For this iteration, let's stick to store for items, but project structure is in DB.
-            // Actually, we should call a server action to save all items.
-
-            // Temporary: We will use the store to update local state, 
-            // BUT we need to implement item saving in the Editor or here.
-
-            // Let's rely on the Editor to save changes if we modify the store?
-            // If we update the store here, and then redirect...
-            // The store is client-side. The data persists in memory? No, we removed persist.
-            // So we MUST save to DB here.
-
-            // For this specific task (Isolating User Data), let's focus on Project isolation.
-            // Saving items properly requires more Server Actions.
-            // Let's implement a bulk save or just rely on the API to create them?
-            // The /api/project/generate could be updated to save to DB directly if we pass userId.
-            // But it's an API route.
-
-            // Let's leave AI generation "as is" for a moment - it might break until we implement item saving.
-            // Focus on basic CRUD first.
-
-            // We will just update the store locally, and if the user stays on the page it works.
-            // But refresh will lose data if not saved.
-            // The Editor needs to save to DB.
-
-            // @ts-ignore
-            useProjectStore.getState().updateProject(project.id, {
-                investments: (data.investments || []).map((i: any) => ({ ...i, id: crypto.randomUUID() })),
-                revenues: (data.revenues || []).map((i: any) => ({ ...i, id: crypto.randomUUID() })),
-                expenses: (data.expenses || []).map((i: any) => ({ ...i, id: crypto.randomUUID() })),
-                aiChatHistory: data.aiChatMessage ? [{ role: 'assistant', content: data.aiChatMessage }] : []
+            // Bulk create items via Server Action
+            await bulkCreateItems(project.id, {
+                investments: data.investments,
+                revenues: data.revenues,
+                expenses: data.expenses,
+                aiChatMessage: data.aiChatMessage
             });
 
-            // TODO: We need to sync these items to DB immediately. 
-            // Leaving as todo for next task iteration.
-
+            // Redirect to editor - it will load the data from server
             router.push(`/editor/${project.id}`);
 
         } catch (error: any) {

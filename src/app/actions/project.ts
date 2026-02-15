@@ -12,9 +12,10 @@ export async function getProjects() {
         const projects = await prisma.project.findMany({
             where: {
                 userId: session.user.id,
-                // We'll handle 'archived' status via a field if we add it, or just return all
-                // The current schema doesn't have a 'status' field, so we might need to add it or infer it.
-                // store.ts has 'status' field.
+                status: 'active' // Filter by active by default? Or return all? 
+                // Store filters by active/archived. Let's return all for now to let client filter?
+                // Or maybe the dashboard only needs active?
+                // The dashboard filters client side. Let's return all.
             },
             include: {
                 investments: true,
@@ -29,6 +30,29 @@ export async function getProjects() {
     } catch (error) {
         console.error('Failed to fetch projects:', error)
         return []
+    }
+}
+
+export async function getProject(id: string) {
+    const session = await auth()
+    if (!session?.user?.id) return null
+
+    try {
+        const project = await prisma.project.findUnique({
+            where: {
+                id,
+                userId: session.user.id,
+            },
+            include: {
+                investments: true,
+                revenues: true,
+                expenses: true,
+            },
+        })
+        return project
+    } catch (error) {
+        console.error('Failed to fetch project:', error)
+        return null
     }
 }
 
