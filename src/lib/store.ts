@@ -51,17 +51,17 @@ interface ProjectStore {
     restoreProject: (projectId: string) => void;
 
     // Investment actions
-    addInvestment: (item: Omit<InvestmentItem, 'id'>) => void;
+    addInvestment: (item: Omit<InvestmentItem, 'id'> & { id?: string }) => void;
     updateInvestment: (id: string, updates: Partial<InvestmentItem>) => void;
     deleteInvestment: (id: string) => void;
 
     // Revenue actions
-    addRevenue: (item: Omit<RevenueItem, 'id'>) => void;
+    addRevenue: (item: Omit<RevenueItem, 'id'> & { id?: string }) => void;
     updateRevenue: (id: string, updates: Partial<RevenueItem>) => void;
     deleteRevenue: (id: string) => void;
 
     // Expense actions
-    addExpense: (item: Omit<ExpenseItem, 'id'>) => void;
+    addExpense: (item: Omit<ExpenseItem, 'id'> & { id?: string }) => void;
     updateExpense: (id: string, updates: Partial<ExpenseItem>) => void;
     deleteExpense: (id: string) => void;
 }
@@ -151,8 +151,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         const currentProject = get().currentProject;
         if (!currentProject) return;
 
-        const newItem = { ...item, id: crypto.randomUUID() };
-        const updatedInvestments = [...currentProject.investments, newItem];
+        const newItem = { ...item, id: item.id || crypto.randomUUID() };
+        const updatedInvestments = [...currentProject.investments, newItem as InvestmentItem];
 
         get().updateProject(currentProject.id, { investments: updatedInvestments });
     },
@@ -184,8 +184,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         const currentProject = get().currentProject;
         if (!currentProject) return;
 
-        const newItem = { ...item, id: crypto.randomUUID() };
-        const updatedRevenues = [...currentProject.revenues, newItem];
+        const newItem = { ...item, id: item.id || crypto.randomUUID() };
+        const updatedRevenues = [...currentProject.revenues, newItem as RevenueItem];
 
         get().updateProject(currentProject.id, { revenues: updatedRevenues });
     },
@@ -215,8 +215,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         const currentProject = get().currentProject;
         if (!currentProject) return;
 
-        const newItem = { ...item, id: crypto.randomUUID() };
-        const updatedExpenses = [...currentProject.expenses, newItem];
+        const newItem = { ...item, id: item.id || crypto.randomUUID() };
+        const updatedExpenses = [...currentProject.expenses, newItem as ExpenseItem];
 
         get().updateProject(currentProject.id, { expenses: updatedExpenses });
     },
