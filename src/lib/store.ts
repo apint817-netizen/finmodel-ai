@@ -12,6 +12,7 @@ export interface RevenueItem {
     id: string;
     name: string;
     monthlyAmount: number;
+    growthRate: number;
     type: 'recurring' | 'one-time';
     description?: string;
 }
@@ -20,6 +21,7 @@ export interface ExpenseItem {
     id: string;
     name: string;
     monthlyAmount: number;
+    growthRate: number;
     type: 'fixed' | 'variable';
     description?: string;
 }
