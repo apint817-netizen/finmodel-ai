@@ -9,6 +9,7 @@ export interface RevenueItem {
     id: string;
     name: string;
     monthlyAmount: number;
+    growthRate: number;
     type: 'recurring' | 'one-time';
 }
 
@@ -16,6 +17,7 @@ export interface ExpenseItem {
     id: string;
     name: string;
     monthlyAmount: number;
+    growthRate: number;
     type: 'fixed' | 'variable';
 }
 
@@ -47,15 +49,15 @@ export const BUSINESS_TEMPLATES: BusinessTemplate[] = [
             { category: 'Вывеска и реклама', amount: 150000, description: 'Наружная реклама и продвижение' },
         ],
         revenues: [
-            { name: 'Продажа одежды', monthlyAmount: 600000, type: 'recurring' },
-            { name: 'Продажа аксессуаров', monthlyAmount: 100000, type: 'recurring' },
+            { name: 'Продажа одежды', monthlyAmount: 600000, growthRate: 0, type: 'recurring' },
+            { name: 'Продажа аксессуаров', monthlyAmount: 100000, growthRate: 0, type: 'recurring' },
         ],
         expenses: [
-            { name: 'Аренда помещения', monthlyAmount: 100000, type: 'fixed' },
-            { name: 'Зарплата продавцов', monthlyAmount: 120000, type: 'fixed' },
-            { name: 'Коммунальные услуги', monthlyAmount: 15000, type: 'fixed' },
-            { name: 'Закупка товара', monthlyAmount: 280000, type: 'variable' },
-            { name: 'Реклама', monthlyAmount: 30000, type: 'variable' },
+            { name: 'Аренда помещения', monthlyAmount: 100000, growthRate: 0, type: 'fixed' },
+            { name: 'Зарплата продавцов', monthlyAmount: 120000, growthRate: 0, type: 'fixed' },
+            { name: 'Коммунальные услуги', monthlyAmount: 15000, growthRate: 0, type: 'fixed' },
+            { name: 'Закупка товара', monthlyAmount: 280000, growthRate: 0, type: 'variable' },
+            { name: 'Реклама', monthlyAmount: 30000, growthRate: 0, type: 'variable' },
         ],
     },
     {
@@ -74,16 +76,16 @@ export const BUSINESS_TEMPLATES: BusinessTemplate[] = [
             { category: 'Лицензии и документы', amount: 50000, description: 'Разрешения и сертификаты' },
         ],
         revenues: [
-            { name: 'Продажа блюд', monthlyAmount: 450000, type: 'recurring' },
-            { name: 'Напитки', monthlyAmount: 180000, type: 'recurring' },
-            { name: 'Десерты', monthlyAmount: 70000, type: 'recurring' },
+            { name: 'Продажа блюд', monthlyAmount: 450000, growthRate: 0, type: 'recurring' },
+            { name: 'Напитки', monthlyAmount: 180000, growthRate: 0, type: 'recurring' },
+            { name: 'Десерты', monthlyAmount: 70000, growthRate: 0, type: 'recurring' },
         ],
         expenses: [
-            { name: 'Аренда помещения', monthlyAmount: 80000, type: 'fixed' },
-            { name: 'Зарплата персонала', monthlyAmount: 200000, type: 'fixed' },
-            { name: 'Коммунальные услуги', monthlyAmount: 25000, type: 'fixed' },
-            { name: 'Закупка продуктов', monthlyAmount: 210000, type: 'variable' },
-            { name: 'Реклама и доставка', monthlyAmount: 40000, type: 'variable' },
+            { name: 'Аренда помещения', monthlyAmount: 80000, growthRate: 0, type: 'fixed' },
+            { name: 'Зарплата персонала', monthlyAmount: 200000, growthRate: 0, type: 'fixed' },
+            { name: 'Коммунальные услуги', monthlyAmount: 25000, growthRate: 0, type: 'fixed' },
+            { name: 'Закупка продуктов', monthlyAmount: 210000, growthRate: 0, type: 'variable' },
+            { name: 'Реклама и доставка', monthlyAmount: 40000, growthRate: 0, type: 'variable' },
         ],
     },
     {
@@ -101,17 +103,17 @@ export const BUSINESS_TEMPLATES: BusinessTemplate[] = [
             { category: 'Косметика и инструменты', amount: 200000, description: 'Первая закупка материалов' },
         ],
         revenues: [
-            { name: 'Стрижки', monthlyAmount: 180000, type: 'recurring' },
-            { name: 'Окрашивание', monthlyAmount: 220000, type: 'recurring' },
-            { name: 'Маникюр', monthlyAmount: 150000, type: 'recurring' },
-            { name: 'Уходовые процедуры', monthlyAmount: 100000, type: 'recurring' },
+            { name: 'Стрижки', monthlyAmount: 180000, growthRate: 0, type: 'recurring' },
+            { name: 'Окрашивание', monthlyAmount: 220000, growthRate: 0, type: 'recurring' },
+            { name: 'Маникюр', monthlyAmount: 150000, growthRate: 0, type: 'recurring' },
+            { name: 'Уходовые процедуры', monthlyAmount: 100000, growthRate: 0, type: 'recurring' },
         ],
         expenses: [
-            { name: 'Аренда помещения', monthlyAmount: 70000, type: 'fixed' },
-            { name: 'Зарплата мастеров', monthlyAmount: 260000, type: 'fixed' },
-            { name: 'Коммунальные услуги', monthlyAmount: 12000, type: 'fixed' },
-            { name: 'Материалы и косметика', monthlyAmount: 80000, type: 'variable' },
-            { name: 'Реклама', monthlyAmount: 25000, type: 'variable' },
+            { name: 'Аренда помещения', monthlyAmount: 70000, growthRate: 0, type: 'fixed' },
+            { name: 'Зарплата мастеров', monthlyAmount: 260000, growthRate: 0, type: 'fixed' },
+            { name: 'Коммунальные услуги', monthlyAmount: 12000, growthRate: 0, type: 'fixed' },
+            { name: 'Материалы и косметика', monthlyAmount: 80000, growthRate: 0, type: 'variable' },
+            { name: 'Реклама', monthlyAmount: 25000, growthRate: 0, type: 'variable' },
         ],
     },
     {
@@ -129,17 +131,17 @@ export const BUSINESS_TEMPLATES: BusinessTemplate[] = [
             { category: 'Лицензии', amount: 50000, description: 'Разрешения и документы' },
         ],
         revenues: [
-            { name: 'Почасовая оплата', monthlyAmount: 280000, type: 'recurring' },
-            { name: 'Абонементы', monthlyAmount: 180000, type: 'recurring' },
-            { name: 'Проведение праздников', monthlyAmount: 120000, type: 'recurring' },
-            { name: 'Кафе', monthlyAmount: 50000, type: 'recurring' },
+            { name: 'Почасовая оплата', monthlyAmount: 280000, growthRate: 0, type: 'recurring' },
+            { name: 'Абонементы', monthlyAmount: 180000, growthRate: 0, type: 'recurring' },
+            { name: 'Проведение праздников', monthlyAmount: 120000, growthRate: 0, type: 'recurring' },
+            { name: 'Кафе', monthlyAmount: 50000, growthRate: 0, type: 'recurring' },
         ],
         expenses: [
-            { name: 'Аренда помещения', monthlyAmount: 100000, type: 'fixed' },
-            { name: 'Зарплата персонала', monthlyAmount: 150000, type: 'fixed' },
-            { name: 'Коммунальные услуги', monthlyAmount: 30000, type: 'fixed' },
-            { name: 'Расходные материалы', monthlyAmount: 40000, type: 'variable' },
-            { name: 'Реклама', monthlyAmount: 35000, type: 'variable' },
+            { name: 'Аренда помещения', monthlyAmount: 100000, growthRate: 0, type: 'fixed' },
+            { name: 'Зарплата персонала', monthlyAmount: 150000, growthRate: 0, type: 'fixed' },
+            { name: 'Коммунальные услуги', monthlyAmount: 30000, growthRate: 0, type: 'fixed' },
+            { name: 'Расходные материалы', monthlyAmount: 40000, growthRate: 0, type: 'variable' },
+            { name: 'Реклама', monthlyAmount: 35000, growthRate: 0, type: 'variable' },
         ],
     },
     {
@@ -156,16 +158,16 @@ export const BUSINESS_TEMPLATES: BusinessTemplate[] = [
             { category: 'Склад', amount: 150000, description: 'Аренда и оборудование склада' },
         ],
         revenues: [
-            { name: 'Продажи через сайт', monthlyAmount: 800000, type: 'recurring' },
-            { name: 'Маркетплейсы', monthlyAmount: 300000, type: 'recurring' },
+            { name: 'Продажи через сайт', monthlyAmount: 800000, growthRate: 0, type: 'recurring' },
+            { name: 'Маркетплейсы', monthlyAmount: 300000, growthRate: 0, type: 'recurring' },
         ],
         expenses: [
-            { name: 'Хостинг и домен', monthlyAmount: 5000, type: 'fixed' },
-            { name: 'Зарплата персонала', monthlyAmount: 120000, type: 'fixed' },
-            { name: 'Аренда склада', monthlyAmount: 40000, type: 'fixed' },
-            { name: 'Реклама', monthlyAmount: 150000, type: 'variable' },
-            { name: 'Логистика', monthlyAmount: 80000, type: 'variable' },
-            { name: 'Закупка товара', monthlyAmount: 440000, type: 'variable' },
+            { name: 'Хостинг и домен', monthlyAmount: 5000, growthRate: 0, type: 'fixed' },
+            { name: 'Зарплата персонала', monthlyAmount: 120000, growthRate: 0, type: 'fixed' },
+            { name: 'Аренда склада', monthlyAmount: 40000, growthRate: 0, type: 'fixed' },
+            { name: 'Реклама', monthlyAmount: 150000, growthRate: 0, type: 'variable' },
+            { name: 'Логистика', monthlyAmount: 80000, growthRate: 0, type: 'variable' },
+            { name: 'Закупка товара', monthlyAmount: 440000, growthRate: 0, type: 'variable' },
         ],
     },
 ];
