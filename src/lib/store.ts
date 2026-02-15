@@ -42,6 +42,7 @@ interface ProjectStore {
     currentProject: FinancialModel | null;
 
     // Actions
+    setProjects: (projects: FinancialModel[]) => void;
     createProject: (name: string, template: string) => FinancialModel;
     setCurrentProject: (projectId: string) => void;
     updateProject: (projectId: string, updates: Partial<FinancialModel>) => void;
@@ -65,168 +66,178 @@ interface ProjectStore {
     deleteExpense: (id: string) => void;
 }
 
-export const useProjectStore = create<ProjectStore>()(
-    persist(
-        (set, get) => ({
-            projects: [],
-            currentProject: null,
+// export const useProjectStore = create<ProjectStore>()(
+//     persist(
+//         (set, get) => ({
+export const useProjectStore = create<ProjectStore>((set, get) => ({
+    projects: [],
+    currentProject: null,
 
-            createProject: (name, template) => {
-                const newProject: FinancialModel = {
-                    id: crypto.randomUUID(),
-                    name,
-                    template,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    investments: [],
-                    revenues: [],
-                    expenses: [],
-                    aiChatHistory: [],
-                    status: 'active',
-                };
+    // Hydration action
+    setProjects: (projects) => set({ projects }),
 
-                set((state) => ({
-                    projects: [...state.projects, newProject],
-                    currentProject: newProject,
-                }));
+    createProject: (name, template) => {
+        // ... (rest is same, but we will modify usages later to call server action)
+        // For now, keep the local pessimistic update logic or Optimistic?
+        // Let's keep existing logic but it will be overriden by server sync.
+        // Actually, for "create", we want to call the server action.
+        // But the store definition just defines state updates. 
+        // We will handle the "Server Action call" in the Component, then call store.addProject().
 
-                return newProject;
-            },
+        // Wait, the store currently generates IDs.
+        // If we move to server, the server generates IDs (kinda, prisma uses cuid() default).
+        // But for Optimistic updates, we can use temp IDs.
 
-            setCurrentProject: (projectId) => {
-                const project = get().projects.find((p) => p.id === projectId);
-                if (project) {
-                    set({ currentProject: project });
-                }
-            },
+        const newProject: FinancialModel = {
+            id: crypto.randomUUID(),
+            name,
+            template,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            investments: [],
+            revenues: [],
+            expenses: [],
+            aiChatHistory: [],
+            status: 'active',
+        };
 
-            updateProject: (projectId, updates) => {
-                set((state) => ({
-                    projects: state.projects.map((p) =>
-                        p.id === projectId
-                            ? { ...p, ...updates, updatedAt: new Date().toISOString() }
-                            : p
-                    ),
-                    currentProject:
-                        state.currentProject?.id === projectId
-                            ? { ...state.currentProject, ...updates, updatedAt: new Date().toISOString() }
-                            : state.currentProject,
-                }));
-            },
+        set((state) => ({
+            projects: [newProject, ...state.projects], // Prepend
+            currentProject: newProject,
+        }));
 
-            deleteProject: (projectId) => {
-                set((state) => ({
-                    projects: state.projects.filter((p) => p.id !== projectId),
-                    currentProject:
-                        state.currentProject?.id === projectId ? null : state.currentProject,
-                }));
-            },
+        return newProject;
+    },
 
-            archiveProject: (projectId) => {
-                get().updateProject(projectId, { status: 'archived' });
-            },
-
-            restoreProject: (projectId) => {
-                get().updateProject(projectId, { status: 'active' });
-            },
-
-            // Investment actions
-            addInvestment: (item) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const newItem = { ...item, id: crypto.randomUUID() };
-                const updatedInvestments = [...currentProject.investments, newItem];
-
-                get().updateProject(currentProject.id, { investments: updatedInvestments });
-            },
-
-            updateInvestment: (id, updates) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const updatedInvestments = currentProject.investments.map((item) =>
-                    item.id === id ? { ...item, ...updates } : item
-                );
-
-                get().updateProject(currentProject.id, { investments: updatedInvestments });
-            },
-
-            deleteInvestment: (id) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const updatedInvestments = currentProject.investments.filter(
-                    (item) => item.id !== id
-                );
-
-                get().updateProject(currentProject.id, { investments: updatedInvestments });
-            },
-
-            // Revenue actions
-            addRevenue: (item) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const newItem = { ...item, id: crypto.randomUUID() };
-                const updatedRevenues = [...currentProject.revenues, newItem];
-
-                get().updateProject(currentProject.id, { revenues: updatedRevenues });
-            },
-
-            updateRevenue: (id, updates) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const updatedRevenues = currentProject.revenues.map((item) =>
-                    item.id === id ? { ...item, ...updates } : item
-                );
-
-                get().updateProject(currentProject.id, { revenues: updatedRevenues });
-            },
-
-            deleteRevenue: (id) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const updatedRevenues = currentProject.revenues.filter((item) => item.id !== id);
-
-                get().updateProject(currentProject.id, { revenues: updatedRevenues });
-            },
-
-            // Expense actions
-            addExpense: (item) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const newItem = { ...item, id: crypto.randomUUID() };
-                const updatedExpenses = [...currentProject.expenses, newItem];
-
-                get().updateProject(currentProject.id, { expenses: updatedExpenses });
-            },
-
-            updateExpense: (id, updates) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const updatedExpenses = currentProject.expenses.map((item) =>
-                    item.id === id ? { ...item, ...updates } : item
-                );
-
-                get().updateProject(currentProject.id, { expenses: updatedExpenses });
-            },
-
-            deleteExpense: (id) => {
-                const currentProject = get().currentProject;
-                if (!currentProject) return;
-
-                const updatedExpenses = currentProject.expenses.filter((item) => item.id !== id);
-
-                get().updateProject(currentProject.id, { expenses: updatedExpenses });
-            },
-        }),
-        {
-            name: 'finmodel-projects',
+    setCurrentProject: (projectId) => {
+        const project = get().projects.find((p) => p.id === projectId);
+        if (project) {
+            set({ currentProject: project });
         }
-    )
-);
+    },
+
+    updateProject: (projectId, updates) => {
+        set((state) => ({
+            projects: state.projects.map((p) =>
+                p.id === projectId
+                    ? { ...p, ...updates, updatedAt: new Date().toISOString() }
+                    : p
+            ),
+            currentProject:
+                state.currentProject?.id === projectId
+                    ? { ...state.currentProject, ...updates, updatedAt: new Date().toISOString() }
+                    : state.currentProject,
+        }));
+    },
+
+    deleteProject: (projectId) => {
+        set((state) => ({
+            projects: state.projects.filter((p) => p.id !== projectId),
+            currentProject:
+                state.currentProject?.id === projectId ? null : state.currentProject,
+        }));
+    },
+
+    archiveProject: (projectId) => {
+        get().updateProject(projectId, { status: 'archived' });
+    },
+
+    restoreProject: (projectId) => {
+        get().updateProject(projectId, { status: 'active' });
+    },
+
+    // Investment actions
+    addInvestment: (item) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const newItem = { ...item, id: crypto.randomUUID() };
+        const updatedInvestments = [...currentProject.investments, newItem];
+
+        get().updateProject(currentProject.id, { investments: updatedInvestments });
+    },
+
+    updateInvestment: (id, updates) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const updatedInvestments = currentProject.investments.map((item) =>
+            item.id === id ? { ...item, ...updates } : item
+        );
+
+        get().updateProject(currentProject.id, { investments: updatedInvestments });
+    },
+
+    deleteInvestment: (id) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const updatedInvestments = currentProject.investments.filter(
+            (item) => item.id !== id
+        );
+
+        get().updateProject(currentProject.id, { investments: updatedInvestments });
+    },
+
+    // Revenue actions
+    addRevenue: (item) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const newItem = { ...item, id: crypto.randomUUID() };
+        const updatedRevenues = [...currentProject.revenues, newItem];
+
+        get().updateProject(currentProject.id, { revenues: updatedRevenues });
+    },
+
+    updateRevenue: (id, updates) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const updatedRevenues = currentProject.revenues.map((item) =>
+            item.id === id ? { ...item, ...updates } : item
+        );
+
+        get().updateProject(currentProject.id, { revenues: updatedRevenues });
+    },
+
+    deleteRevenue: (id) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const updatedRevenues = currentProject.revenues.filter((item) => item.id !== id);
+
+        get().updateProject(currentProject.id, { revenues: updatedRevenues });
+    },
+
+    // Expense actions
+    addExpense: (item) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const newItem = { ...item, id: crypto.randomUUID() };
+        const updatedExpenses = [...currentProject.expenses, newItem];
+
+        get().updateProject(currentProject.id, { expenses: updatedExpenses });
+    },
+
+    updateExpense: (id, updates) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const updatedExpenses = currentProject.expenses.map((item) =>
+            item.id === id ? { ...item, ...updates } : item
+        );
+
+        get().updateProject(currentProject.id, { expenses: updatedExpenses });
+    },
+
+    deleteExpense: (id) => {
+        const currentProject = get().currentProject;
+        if (!currentProject) return;
+
+        const updatedExpenses = currentProject.expenses.filter((item) => item.id !== id);
+
+        get().updateProject(currentProject.id, { expenses: updatedExpenses });
+    },
+}));

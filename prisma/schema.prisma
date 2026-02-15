@@ -66,6 +66,8 @@ model Project {
   description String?  @db.Text
   industry    String?
   currency    String   @default("RUB")
+  status      String   @default("active") // active, archived
+  template    String   @default("custom") 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
