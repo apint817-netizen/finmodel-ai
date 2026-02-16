@@ -84,3 +84,21 @@ export async function getBusinessSummary(projectId: string) {
         taxLiability: taxResult,
     };
 }
+
+export async function createBusinessProject() {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const project = await prisma.project.create({
+        data: {
+            userId: session.user.id,
+            name: "Мой Бизнес",
+            type: "business",
+            taxSystem: "usn_6",
+            status: "active",
+            currency: "RUB",
+        }
+    });
+
+    return project;
+}

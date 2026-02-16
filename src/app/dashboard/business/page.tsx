@@ -3,6 +3,7 @@ import { FinancialHealthWidget } from "@/components/business/FinancialHealthWidg
 import { TaxCalendar } from "@/components/business/TaxCalendar";
 import { TransactionList } from "@/components/business/TransactionList";
 import { CompanySearch } from "@/components/business/CompanySearch";
+import { CreateBusinessProjectButton } from "@/components/business/CreateBusinessProjectButton";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
@@ -33,7 +34,9 @@ export default async function BusinessDashboardPage() {
             <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Бизнес-Консультант</h1>
                 <p className="mb-4 text-gray-600 dark:text-gray-400">У вас пока нет активных бизнес-проектов.</p>
-                {/* Button to create would go here */}
+                <div className="flex justify-center">
+                    <CreateBusinessProjectButton />
+                </div>
             </div>
         );
     }
