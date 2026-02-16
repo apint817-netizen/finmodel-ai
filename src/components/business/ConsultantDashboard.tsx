@@ -177,6 +177,13 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                             <p className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white truncate">
                                 {formatCurrency(metrics.income)}
                             </p>
+                            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
+                                <BankUpload
+                                    userInn={data.inn}
+                                    patentAccount={data.patentAccount}
+                                    onUpload={handleAddMultipleTransactions}
+                                />
+                            </div>
                         </div>
                         <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-2">

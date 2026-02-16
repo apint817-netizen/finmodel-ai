@@ -9,9 +9,10 @@ import { BankInstructions } from "./BankInstructions";
 interface BankUploadProps {
     onUpload: (transactions: Transaction[]) => void;
     userInn?: string;
+    patentAccount?: string;
 }
 
-export function BankUpload({ onUpload, userInn }: BankUploadProps) {
+export function BankUpload({ onUpload, userInn, patentAccount }: BankUploadProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export function BankUpload({ onUpload, userInn }: BankUploadProps) {
                 throw new Error("Неверный формат файла или кодировка. Убедитесь, что это файл 1C (txt).");
             }
 
-            const transactions = parseBankStatement(text, userInn);
+            const transactions = parseBankStatement(text, userInn, patentAccount);
 
             if (transactions.length === 0) {
                 // Should show what we parsed to debug if needed, but for now specific error

@@ -87,7 +87,7 @@ export function parse1CStatement(content: string): Transaction[] {
 }
 
 // Updated robust parser for the specific "Client-Bank" format
-export function parseBankStatement(content: string, userInn?: string): Transaction[] {
+export function parseBankStatement(content: string, userInn?: string, patentAccount?: string): Transaction[] {
     const lines = content.split('\n');
     const transactions: Transaction[] = [];
 
@@ -116,11 +116,25 @@ export function parseBankStatement(content: string, userInn?: string): Transacti
                         type = 'expense';
                     }
                 } else {
-                    // Heuristic: if description contains "Оплата за..." it might be income? 
-                    // If "Комиссия" -> expense
+                    // Heuristic
                     const desc = currentDoc['НазначениеПлатежа']?.toLowerCase() || '';
                     if (desc.includes('комиссия') || desc.includes('списание') || desc.includes('покупка')) {
                         type = 'expense';
+                    }
+                }
+
+                // Patent Check by Account
+                let taxSystem: 'patent' | undefined = undefined;
+                if (patentAccount && type === 'income') {
+                    // Check if receiver account matches patent account
+                    const receiverAccount = currentDoc['ПолучательСчет'];
+                    // Logic: patentAccount might be full or partial (last 4 digits)
+                    if (receiverAccount) {
+                        if (patentAccount.length === 4 && receiverAccount.endsWith(patentAccount)) {
+                            taxSystem = 'patent';
+                        } else if (receiverAccount.includes(patentAccount)) {
+                            taxSystem = 'patent';
+                        }
                     }
                 }
 
@@ -130,7 +144,8 @@ export function parseBankStatement(content: string, userInn?: string): Transacti
                     amount: currentDoc['amount'] || 0,
                     type,
                     category: currentDoc['category'] || 'Прочее',
-                    description: currentDoc['НазначениеПлатежа'] || 'Без назначения'
+                    description: currentDoc['НазначениеПлатежа'] || 'Без назначения',
+                    taxSystem: taxSystem
                 });
             }
             inDoc = false;
@@ -153,6 +168,10 @@ export function parseBankStatement(content: string, userInn?: string): Transacti
                 currentDoc['ПлательщикИНН'] = value;
             } else if (key === 'ПолучательИНН') {
                 currentDoc['ПолучательИНН'] = value;
+            } else if (key === 'ПлательщикСчет') {
+                currentDoc['ПлательщикСчет'] = value;
+            } else if (key === 'ПолучательСчет') {
+                currentDoc['ПолучательСчет'] = value;
             } else if (key === 'НазначениеПлатежа') {
                 currentDoc['НазначениеПлатежа'] = value;
                 // Categorization for currentDoc

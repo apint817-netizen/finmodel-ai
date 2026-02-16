@@ -14,15 +14,46 @@ export function BusinessOnboarding({ onComplete }: OnboardingProps) {
     const [formData, setFormData] = useState({
         name: "",
         inn: "",
-        taxSystem: "usn_6", // Default
+        taxSystems: ["usn_6"], // Default array
+        patentAccount: "", // New field for account mapping
     });
 
     const handleNext = () => {
         if (step < 3) {
             setStep(step + 1);
         } else {
+            // Flatten taxSystems back to primary system for backward compat if needed, 
+            // but ideally we store both. We will store `taxSystems` array and `patentAccount`.
             onComplete(formData);
         }
+    };
+
+    const toggleTaxSystem = (id: string) => {
+        // Allow multiple selection logic
+        // If selecting Patent, add it.
+        // If selecting USN, ensure only one USN is active (replace other USN).
+        setFormData(prev => {
+            const current = [...prev.taxSystems];
+            const isSelected = current.includes(id);
+
+            if (id === 'patent') {
+                if (isSelected) return { ...prev, taxSystems: current.filter(s => s !== id) };
+                return { ...prev, taxSystems: [...current, id] };
+            } else {
+                // Determine if switching USN types
+                const otherUsn = id === 'usn_6' ? 'usn_15' : 'usn_6';
+                let newSystems = current.filter(s => s !== otherUsn); // Remove other USN
+                if (isSelected) {
+                    // Start cannot be empty, default to USN6 if removing last? No, toggle off.
+                    // Actually usually you swap USN types.
+                    // For simply logic: Just add new, remove old USN.
+                    if (!newSystems.includes(id)) newSystems.push(id);
+                } else {
+                    newSystems.push(id);
+                }
+                return { ...prev, taxSystems: newSystems };
+            }
+        });
     };
 
     const steps = [
@@ -97,28 +128,47 @@ export function BusinessOnboarding({ onComplete }: OnboardingProps) {
                     className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4"
                 >
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                        Выберите систему налогообложения:
+                        Выберите системы налогообложения (можно несколько):
                     </label>
                     {[
-                        { id: "usn_6", label: "УСН Доходы (6%)", desc: "Платите 6% со всех поступлений. Расходы не учитываются." },
-                        { id: "usn_15", label: "УСН Доходы-Расходы (15%)", desc: "Платите 15% с разницы. Выгодно при большой доле расходов." },
-                        { id: "patent", label: "Патент (ПСН)", desc: "Фиксированная сумма налога на год." },
+                        { id: "usn_6", label: "УСН Доходы (6%)", desc: "Платите 6% со всех поступлений." },
+                        { id: "usn_15", label: "УСН Доходы-Расходы (15%)", desc: "Платите 15% с разницы доходов и расходов." },
+                        { id: "patent", label: "Патент (ПСН)", desc: "Фиксированная сумма. Совмещается с УСН." },
                     ].map((sys) => (
                         <div
                             key={sys.id}
-                            onClick={() => setFormData({ ...formData, taxSystem: sys.id })}
-                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.taxSystem === sys.id
+                            onClick={() => toggleTaxSystem(sys.id)}
+                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.taxSystems.includes(sys.id)
                                 ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
                                 : "border-slate-200 dark:border-slate-800 hover:border-blue-300"
                                 }`}
                         >
                             <div className="flex items-center justify-between mb-1">
                                 <span className="font-semibold text-slate-900 dark:text-white">{sys.label}</span>
-                                {formData.taxSystem === sys.id && <Check className="w-5 h-5 text-blue-600" />}
+                                {formData.taxSystems.includes(sys.id) && <Check className="w-5 h-5 text-blue-600" />}
                             </div>
                             <p className="text-sm text-slate-500 dark:text-slate-400">{sys.desc}</p>
                         </div>
                     ))}
+
+                    {/* Patent Account Input */}
+                    {formData.taxSystems.includes('patent') && (
+                        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Расчетный счет для Патента (последние 4 цифры или целиком)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.patentAccount}
+                                onChange={(e) => setFormData({ ...formData, patentAccount: e.target.value })}
+                                placeholder="Например: 40802... или 9876"
+                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p className="text-xs text-slate-500 mt-2">
+                                Мы будем автоматически помечать операции с этого счета как "Патент".
+                            </p>
+                        </div>
+                    )}
                 </motion.div>
             )}
 
@@ -140,10 +190,18 @@ export function BusinessOnboarding({ onComplete }: OnboardingProps) {
                         <p className="text-sm text-slate-500 mb-1">Организация</p>
                         <p className="font-medium text-slate-900 dark:text-white mb-3">{formData.name || "Без названия"}</p>
                         <p className="text-sm text-slate-500 mb-1">Налоговый режим</p>
-                        <p className="font-medium text-slate-900 dark:text-white">
-                            {formData.taxSystem === "usn_6" ? "УСН Доходы (6%)" :
-                                formData.taxSystem === "usn_15" ? "УСН Доходы-Расходы (15%)" : "Патент"}
-                        </p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                            {formData.taxSystems.map(sys => (
+                                <span key={sys} className="px-2 py-1 bg-white dark:bg-slate-700 rounded shadow-sm text-xs font-medium">
+                                    {sys === 'usn_6' ? 'УСН 6%' : sys === 'usn_15' ? 'УСН 15%' : 'Патент'}
+                                </span>
+                            ))}
+                        </div>
+                        {formData.patentAccount && (
+                            <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                                <p className="text-xs text-slate-500">Счет патента: ...{formData.patentAccount.slice(-4)}</p>
+                            </div>
+                        )}
                     </div>
                 </motion.div>
             )}
