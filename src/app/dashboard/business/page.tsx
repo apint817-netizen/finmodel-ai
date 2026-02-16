@@ -3,6 +3,7 @@ import { FinancialHealthWidget } from "@/components/business/FinancialHealthWidg
 import { TaxCalendar } from "@/components/business/TaxCalendar";
 import { TransactionList } from "@/components/business/TransactionList";
 import { CompanySearch } from "@/components/business/CompanySearch";
+import { BusinessHeader } from "@/components/business/BusinessHeader";
 import { CreateBusinessProjectButton } from "@/components/business/CreateBusinessProjectButton";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -43,21 +44,22 @@ export default async function BusinessDashboardPage() {
 
     const summary = await getBusinessSummary(project.id);
 
+    // Calculate metrics for the header
+    // In a real app, 'balance' might come from bank integration. 
+    // Here we use netProfit as a proxy for available funds for demonstration.
+    const headerMetrics = {
+        balance: summary.netProfit,
+        taxToPay: summary.taxLiability, // using calculated tax liability
+        risksCount: 2 // Mocked risk count for now
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                        {project.name}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Панель управления бизнесом
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    {/* Settings button, etc. */}
-                </div>
-            </div>
+            <BusinessHeader
+                userName={session.user.name || "Предприниматель"}
+                projectName={project.name}
+                metrics={headerMetrics}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
