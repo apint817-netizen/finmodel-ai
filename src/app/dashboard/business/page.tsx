@@ -49,7 +49,7 @@ export default async function BusinessDashboardPage() {
     // Here we use netProfit as a proxy for available funds for demonstration.
     const headerMetrics = {
         balance: summary.netProfit,
-        taxToPay: summary.taxLiability.totalTax, // using calculated tax liability
+        taxToPay: summary.taxLiability.taxAmount, // Correct property from TaxResult
         risksCount: 2 // Mocked risk count for now
     };
 
