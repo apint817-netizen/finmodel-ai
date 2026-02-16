@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth"; // Assuming auth is configured
-import { prisma } from "@/lib/prisma"; // Assuming prisma client instance
+import prisma from "@/lib/prisma"; // Assuming prisma client instance
 import { revalidatePath } from "next/cache";
 import { calculateTaxLiability, TaxSystem } from "@/lib/tax-engine";
 
