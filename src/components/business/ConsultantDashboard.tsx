@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet } from "lucide-react";
 import { TransactionManager } from "./TransactionManager";
+import { BankUpload } from "./BankUpload";
 import { Transaction, calculateTax, TaxSystem } from "@/lib/business-logic";
 import { formatCurrency } from "@/lib/calculations";
 
