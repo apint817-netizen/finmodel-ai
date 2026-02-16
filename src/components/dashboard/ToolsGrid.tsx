@@ -19,8 +19,8 @@ export function ToolsGrid() {
                 title="AI Бизнес-Консультант"
                 description="Ваш персональный финансовый директор. Анализ рисков, налоговая оптимизация и советы по управлению финансами."
                 icon={Bot}
-                href="/dashboard/business" // Still keep the route but maybe handle it differently later
-                status="coming_soon"
+                href="/dashboard/business"
+                status="new"
                 color="indigo"
             />
 
