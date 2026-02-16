@@ -7,8 +7,19 @@ export const metadata: Metadata = {
   description: 'Создавайте, анализируйте и оптимизируйте финансовые модели для любого бизнеса с помощью искусственного интеллекта',
 };
 
+import { Geist, Geist_Mono } from "next/font/google";
 import { auth } from '@/auth';
 import { NextAuthProvider } from '@/components/providers/SessionProvider';
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export default async function RootLayout({
   children,
@@ -19,7 +30,7 @@ export default async function RootLayout({
 
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className="antialiased">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 dark:bg-slate-950`}>
         <NextAuthProvider session={session}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {children}
