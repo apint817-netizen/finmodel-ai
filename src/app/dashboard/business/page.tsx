@@ -2,9 +2,10 @@ import { getBusinessSummary } from "@/actions/business";
 import { FinancialHealthWidget } from "@/components/business/FinancialHealthWidget";
 import { TaxCalendar } from "@/components/business/TaxCalendar";
 import { TransactionList } from "@/components/business/TransactionList";
+import { CompanySearch } from "@/components/business/CompanySearch";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
 // This is a dynamic page that might need project ID from params or query
 // For now, assuming we land here and pick a project or use the last active one
@@ -56,7 +57,8 @@ export default async function BusinessDashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                    <CompanySearch />
                     <FinancialHealthWidget
                         netProfit={summary.netProfit}
                         totalIncome={summary.totalIncome}

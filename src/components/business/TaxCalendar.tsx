@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { PaymentButton } from "./PaymentButton";
 
 interface TaxCalendarProps {
     taxLiability: {
@@ -38,6 +39,14 @@ export function TaxCalendar({ taxLiability }: TaxCalendarProps) {
                     <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         {taxLiability.details}
                     </div>
+                    {taxLiability.taxAmount > 0 && (
+                        <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                            <PaymentButton
+                                amount={taxLiability.taxAmount}
+                                description={`Налог по системе ${taxLiability.details}`}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-4">
