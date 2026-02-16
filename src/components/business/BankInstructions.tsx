@@ -63,7 +63,7 @@ const INSTRUCTIONS: Instruction[] = [
             "Выберите формат «1C Client Bank» (txt)",
             "Скачайте файл"
         ],
-        link: "https://online.rsb.ru/"
+        link: "https://ibank.rsb.ru/main.zul"
     },
     {
         id: 'alfa',
