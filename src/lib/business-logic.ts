@@ -4,10 +4,6 @@ export interface Transaction {
     id: string;
     date: string;
     amount: number;
-    type: 'income' | 'expense';
-    category: string;
-    description: string;
-    accountNumber?: string; // User's account involved
     category: string;
     description: string;
     accountNumber?: string; // User's account involved
