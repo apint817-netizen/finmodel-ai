@@ -160,21 +160,13 @@ export function DashboardClient({ initialProjects }: { initialProjects: Financia
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-3">
+                    <Link href="/dashboard" className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-lg">
                             <TrendingUp className="w-6 h-6 text-white" />
                         </div>
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white">FinModel AI</h1>
                     </Link>
                     <div className="flex items-center gap-4">
-                        <Link
-                            href="/dashboard/business"
-                            className="hidden md:flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
-                        >
-                            <TrendingUp className="w-4 h-4" />
-                            Бизнес-Консультант
-                        </Link>
-                        <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block"></div>
                         <ThemeToggle />
                         <UserButton />
                         <button
