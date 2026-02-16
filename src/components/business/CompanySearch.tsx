@@ -56,79 +56,99 @@ export function CompanySearch() {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Search className="w-5 h-5 text-gray-500" />
-                Проверка контрагента / Мой бизнес
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 transition-all hover:shadow-md">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <Search className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                Проверка контрагента
             </h3>
 
-            <form onSubmit={handleSearch} className="flex gap-2 mb-6">
-                <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Введите ИНН организации"
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                />
+            <form onSubmit={handleSearch} className="flex gap-3 mb-6 relative">
+                <div className="relative flex-1">
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Введите ИНН организации для поиска"
+                        className="w-full pl-4 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-slate-900 dark:text-white placeholder-slate-400"
+                    />
+                </div>
                 <button
                     type="submit"
                     disabled={loading || !query}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl transition-all font-medium disabled:opacity-50 disabled:active:scale-100 flex items-center gap-2 shadow-lg shadow-blue-500/20"
                 >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Найти"}
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Найти"}
                 </button>
             </form>
 
             {error && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm mb-4">
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm mb-4 border border-red-100 dark:border-red-900/50 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <Info className="w-5 h-5" />
                     {error}
                 </div>
             )}
 
             {result && (
-                <div className="animate-in fade-in slide-in-from-bottom-2">
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
-                            {result.value}
-                        </h4>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                            {result.data.address.value}
-                        </div>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="p-5 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="block text-gray-500 dark:text-gray-400 text-xs uppercase mb-1">ИНН / КПП</span>
-                                <span className="font-medium text-gray-900 dark:text-white">
-                                    {result.data.inn} / {result.data.kpp}
-                                </span>
+                        <div className="relative z-10">
+                            <h4 className="font-bold text-xl text-slate-900 dark:text-white mb-2 leading-tight">
+                                {result.value}
+                            </h4>
+                            <div className="text-slate-500 dark:text-slate-400 mb-6 flex items-start gap-2">
+                                <span className="mt-1 block w-1.5 h-1.5 rounded-full bg-slate-400 flex-shrink-0"></span>
+                                {result.data.address.value}
                             </div>
-                            <div>
-                                <span className="block text-gray-500 dark:text-gray-400 text-xs uppercase mb-1">Статус</span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${result.data.state.status === "ACTIVE"
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                    }`}>
-                                    {result.data.state.status === "ACTIVE" ? "Действующая" : "Недействующая"}
-                                </span>
-                            </div>
-                            {result.data.management && (
-                                <div className="md:col-span-2">
-                                    <span className="block text-gray-500 dark:text-gray-400 text-xs uppercase mb-1">Руководитель</span>
-                                    <span className="font-medium text-gray-900 dark:text-white">
-                                        {result.data.management.name} ({result.data.management.post})
-                                    </span>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm mb-6">
+                                <div className="p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                                    <span className="block text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">Реквизиты</span>
+                                    <div className="font-mono text-slate-900 dark:text-white">
+                                        <span className="text-slate-500 mr-2">ИНН:</span>{result.data.inn}
+                                    </div>
+                                    <div className="font-mono text-slate-900 dark:text-white mt-1">
+                                        <span className="text-slate-500 mr-2">КПП:</span>{result.data.kpp}
+                                    </div>
                                 </div>
-                            )}
-                        </div>
 
-                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+                                <div className="p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                                    <span className="block text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">Статус</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`w-2.5 h-2.5 rounded-full ${result.data.state.status === "ACTIVE" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-red-500"}`}></span>
+                                        <span className={`font-medium ${result.data.state.status === "ACTIVE"
+                                            ? "text-green-700 dark:text-green-400"
+                                            : "text-red-700 dark:text-red-400"
+                                            }`}>
+                                            {result.data.state.status === "ACTIVE" ? "Действующая" : "Недействующая"}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {result.data.management && (
+                                    <div className="md:col-span-2 p-4 bg-white dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                                        <span className="block text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">Руководство</span>
+                                        <span className="font-medium text-slate-900 dark:text-white text-base">
+                                            {result.data.management.name}
+                                        </span>
+                                        <span className="ml-2 text-slate-500 text-sm">
+                                            — {result.data.management.post.toLowerCase()}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
                             <button
                                 type="button"
-                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                className="w-full py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors flex items-center justify-center gap-2"
                                 onClick={() => alert("Функция проверки задолженности в разработке")}
                             >
                                 <Info className="w-4 h-4" />
-                                Проверить задолженности
+                                Проверить задолженности и суды
                             </button>
                         </div>
                     </div>
