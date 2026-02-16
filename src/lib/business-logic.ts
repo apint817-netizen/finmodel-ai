@@ -8,6 +8,9 @@ export interface Transaction {
     category: string;
     description: string;
     accountNumber?: string; // User's account involved
+    category: string;
+    description: string;
+    accountNumber?: string; // User's account involved
     taxSystem?: TaxSystem; // New field check
 }
 
