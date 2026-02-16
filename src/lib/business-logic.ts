@@ -7,6 +7,7 @@ export interface Transaction {
     type: 'income' | 'expense';
     category: string;
     description: string;
+    accountNumber?: string; // User's account involved
     taxSystem?: TaxSystem; // New field check
 }
 

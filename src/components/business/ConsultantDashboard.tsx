@@ -14,6 +14,7 @@ interface ConsultantDashboardProps {
 export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
     // Local State for Transactions (persistence via localStorage in real app would be better wrapper)
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [accountTags, setAccountTags] = useState<Record<string, string>>({}); // Mapping Account -> Name
     const [metrics, setMetrics] = useState({
         income: 0,
         expense: 0,
@@ -35,6 +36,14 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
             ];
             setTransactions(initial);
         }
+
+        // Load account tags
+        const savedTags = localStorage.getItem(`finmodel_tags_${data.name}`);
+        if (savedTags) {
+            try {
+                setAccountTags(JSON.parse(savedTags));
+            } catch (e) { console.error(e); }
+        }
     }, [data.name]);
 
     useEffect(() => {
@@ -42,6 +51,7 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         if (transactions.length > 0) {
             localStorage.setItem(`finmodel_transactions_${data.name}`, JSON.stringify(transactions));
         }
+        localStorage.setItem(`finmodel_tags_${data.name}`, JSON.stringify(accountTags));
 
         const result = calculateTax(transactions, data.taxSystem as TaxSystem);
         setMetrics({
@@ -105,6 +115,10 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
     const usnIncome = stats.income - patentIncome;
 
     const safeLimit = 6.0;
+
+    const handleUpdateTags = (account: string, name: string) => {
+        setAccountTags(prev => ({ ...prev, [account]: name }));
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-20">
@@ -217,6 +231,8 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                     <div className="flex-1 min-h-[400px]">
                         <TransactionManager
                             transactions={transactions}
+                            accountTags={accountTags}
+                            onUpdateTags={handleUpdateTags}
                             onAdd={handleAddTransaction}
                             onAddMultiple={handleAddMultipleTransactions}
                             onDelete={handleDeleteTransaction}
