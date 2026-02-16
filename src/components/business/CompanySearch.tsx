@@ -56,7 +56,6 @@ export function CompanySearch() {
     }
 
     return (
-    return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 transition-all hover:shadow-md">
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
