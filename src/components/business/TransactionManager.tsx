@@ -1,18 +1,20 @@
-"use client";
-
 import { useState } from "react";
-import { Plus, ArrowDownLeft, ArrowUpRight, Search, Trash2, Filter } from "lucide-react";
+import { Plus, ArrowDownLeft, ArrowUpRight, Search, Trash2, Filter, Upload } from "lucide-react";
 import { Transaction } from "@/lib/business-logic";
 import { formatCurrency } from "@/lib/calculations";
+import { BankUpload } from "./BankUpload";
 
 interface TransactionManagerProps {
     transactions: Transaction[];
     onAdd: (t: Omit<Transaction, "id">) => void;
     onDelete: (id: string) => void;
+    onReset?: () => void;
 }
 
-export function TransactionManager({ transactions, onAdd, onDelete }: TransactionManagerProps) {
+export function TransactionManager({ transactions, onAdd, onDelete, onReset }: TransactionManagerProps) {
     const [isAdding, setIsAdding] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+
     const [newTransaction, setNewTransaction] = useState({
         amount: "",
         type: "income" as "income" | "expense",
@@ -53,6 +55,13 @@ export function TransactionManager({ transactions, onAdd, onDelete }: Transactio
                         <Filter className="w-5 h-5" />
                     </button>
                     <button
+                        onClick={() => setIsUploading(!isUploading)}
+                        className={`p-2 rounded-lg transition-colors ${isUploading ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                        title="Загрузить из банка"
+                    >
+                        <Upload className="w-5 h-5" />
+                    </button>
+                    <button
                         onClick={() => setIsAdding(!isAdding)}
                         className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
                     >
@@ -60,6 +69,26 @@ export function TransactionManager({ transactions, onAdd, onDelete }: Transactio
                     </button>
                 </div>
             </div>
+
+            {/* Upload Zone */}
+            {isUploading && (
+                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-2">
+                    <BankUpload
+                        onUpload={(txs) => {
+                            txs.forEach(t => onAdd(t));
+                            setIsUploading(false);
+                        }}
+                    />
+                    <div className="mt-4 flex justify-end">
+                        <button
+                            onClick={() => setIsUploading(false)}
+                            className="text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        >
+                            Закрыть
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Add Form */}
             {isAdding && (
@@ -132,8 +161,8 @@ export function TransactionManager({ transactions, onAdd, onDelete }: Transactio
                         <div key={t.id} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl group transition-all duration-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
                             <div className="flex items-center gap-4 min-w-0">
                                 <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${t.type === 'income'
-                                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                        : 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+                                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                    : 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
                                     }`}>
                                     {t.type === 'income' ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                                 </div>

@@ -55,14 +55,33 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
 
     const handleAddTransaction = (t: Omit<Transaction, "id">) => {
         const newT = { ...t, id: crypto.randomUUID() };
-        setTransactions(prev => [newT, ...prev]);
+        setTransactions(prev => [newT, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     };
 
     const handleDeleteTransaction = (id: string) => {
         setTransactions(prev => prev.filter(t => t.id !== id));
     };
 
-    const nextPaymentDate = "25 апреля"; // Hardcoded for MVP logic
+    // Calendar & Notifications Logic (Dynamic for 2026)
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth(); // 0-11
+
+    // Determine next tax payment
+    let nextPaymentDate = "";
+    let status: 'pending' | 'future' = 'pending';
+
+    // Tax schedule for USN 2026
+    if (currentMonth < 3 || (currentMonth === 3 && currentDate.getDate() <= 28)) { // Before Apr 28
+        nextPaymentDate = `28 апреля ${currentYear}`;
+    } else if (currentMonth < 6 || (currentMonth === 6 && currentDate.getDate() <= 28)) { // Before Jul 28
+        nextPaymentDate = `28 июля ${currentYear}`;
+    } else if (currentMonth < 9 || (currentMonth === 9 && currentDate.getDate() <= 28)) { // Before Oct 28
+        nextPaymentDate = `28 октября ${currentYear}`;
+    } else {
+        nextPaymentDate = `28 апреля ${currentYear + 1}`;
+    }
+
     const safeLimit = 6.0;
 
     return (
