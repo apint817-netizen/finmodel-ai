@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle } from "lucide-react";
+import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet } from "lucide-react";
 import { TransactionManager } from "./TransactionManager";
 import { Transaction, calculateTax, TaxSystem } from "@/lib/business-logic";
 import { formatCurrency } from "@/lib/calculations";
@@ -58,8 +58,18 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         setTransactions(prev => [newT, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     };
 
+    const handleAddMultipleTransactions = (txs: Omit<Transaction, "id">[]) => {
+        const newTxs = txs.map(t => ({ ...t, id: crypto.randomUUID() }));
+        // Merge and sort
+        setTransactions(prev => [...newTxs, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    };
+
     const handleDeleteTransaction = (id: string) => {
         setTransactions(prev => prev.filter(t => t.id !== id));
+    };
+
+    const handleUpdateTransaction = (id: string, updates: Partial<Transaction>) => {
+        setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     };
 
     // Calendar & Notifications Logic (Dynamic for 2026)
@@ -82,41 +92,72 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         nextPaymentDate = `28 апреля ${currentYear + 1}`;
     }
 
+    const taxSystem = data.taxSystem;
+    // Tax Calculation Logic
+    const stats = calculateTax(transactions, taxSystem);
+
+    // Calculate breakdown by system for display
+    const patentIncome = transactions
+        .filter(t => t.taxSystem === 'patent' && t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const usnIncome = stats.income - patentIncome;
+
     const safeLimit = 6.0;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-            {/* Header / Status Banner */}
-            <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-xl">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+            {/* Status Banner */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-xs font-medium border border-emerald-500/30 flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                                Всё под контролем
+                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
+                                {taxSystem === 'usn_6' ? 'УСН 6%' : taxSystem === 'usn_15' ? 'УСН 15%' : 'ОСНО'}
                             </span>
-                            <span className="text-slate-400 text-sm border-l border-slate-700 pl-2">
-                                {data.taxSystem === 'usn_6' ? 'УСН Доходы (6%)' : data.taxSystem === 'usn_15' ? 'УСН Д-Р (15%)' : 'Патент'}
-                            </span>
+                            {patentIncome > 0 && (
+                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
+                                    + Патент
+                                </span>
+                            )}
+                            <span className="text-slate-400 text-sm">•</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Следующая уплата: {nextPaymentDate}</span>
                         </div>
-                        <h1 className="text-2xl md:text-3xl font-bold mb-1">{data.name}</h1>
-                        <p className="text-slate-400 text-sm">ИНН {data.inn || "Не указан"}</p>
+                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                            {formatCurrency(stats.tax)}
+                        </h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">
+                            Примерный налог к уплате (без учета взносов)
+                        </p>
                     </div>
 
-                    <div className="flex w-full md:w-auto items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                        <div className="text-right flex-1 md:flex-none">
-                            <p className="text-slate-400 text-xs uppercase font-medium mb-1">Налог к оплате</p>
-                            <p className="text-2xl font-bold tracking-tight">{formatCurrency(metrics.taxToPay)}</p>
-                            <p className="text-slate-400 text-xs text-amber-300 font-medium">до {nextPaymentDate}</p>
-                        </div>
-                        <button className="bg-white text-slate-900 px-4 py-3 md:px-6 rounded-xl font-bold hover:bg-slate-100 transition-colors flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 duration-200">
-                            <CreditCard className="w-5 h-5" />
-                            <span className="hidden md:inline">Оплатить</span>
+                    <div className="flex gap-3">
+                        <button className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2">
+                            <ArrowUpRight className="w-5 h-5" />
+                            Оплатить
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600">
+                            <Wallet className="w-4 h-4" />
+                        </div>
+                        <span className="text-slate-500 font-medium">Доход (Всего)</span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{formatCurrency(stats.income)}</p>
+                    <div className="text-xs text-slate-400 flex flex-col gap-0.5">
+                        <span>УСН: {formatCurrency(usnIncome)}</span>
+                        <span>Патент: {formatCurrency(patentIncome)}</span>
+                    </div>
+                </div>
+
             </div>
 
             {/* Main Grid */}
@@ -169,7 +210,9 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                         <TransactionManager
                             transactions={transactions}
                             onAdd={handleAddTransaction}
+                            onAddMultiple={handleAddMultipleTransactions}
                             onDelete={handleDeleteTransaction}
+                            onUpdate={handleUpdateTransaction}
                         />
                     </div>
                 </div>

@@ -7,11 +7,13 @@ import { BankUpload } from "./BankUpload";
 interface TransactionManagerProps {
     transactions: Transaction[];
     onAdd: (t: Omit<Transaction, "id">) => void;
+    onAddMultiple?: (txs: Omit<Transaction, "id">[]) => void;
     onDelete: (id: string) => void;
+    onUpdate?: (id: string, updates: Partial<Transaction>) => void;
     onReset?: () => void;
 }
 
-export function TransactionManager({ transactions, onAdd, onDelete, onReset }: TransactionManagerProps) {
+export function TransactionManager({ transactions, onAdd, onAddMultiple, onDelete, onUpdate, onReset }: TransactionManagerProps) {
     const [isAdding, setIsAdding] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -75,7 +77,12 @@ export function TransactionManager({ transactions, onAdd, onDelete, onReset }: T
                 <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 animate-in slide-in-from-top-2">
                     <BankUpload
                         onUpload={(txs) => {
-                            txs.forEach(t => onAdd(t));
+                            if (onAddMultiple) {
+                                onAddMultiple(txs);
+                            } else {
+                                // Fallback
+                                txs.forEach(t => onAdd(t));
+                            }
                             setIsUploading(false);
                         }}
                     />
@@ -172,6 +179,11 @@ export function TransactionManager({ transactions, onAdd, onDelete, onReset }: T
                                         <span>{new Date(t.date).toLocaleDateString()}</span>
                                         <span>•</span>
                                         <span className="capitalize">{t.category}</span>
+                                        {t.taxSystem === 'patent' && (
+                                            <span className="ml-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase">
+                                                Патент
+                                            </span>
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -180,6 +192,15 @@ export function TransactionManager({ transactions, onAdd, onDelete, onReset }: T
                                     }`}>
                                     {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                                 </span>
+                                {onUpdate && t.type === 'income' && (
+                                    <button
+                                        onClick={() => onUpdate(t.id, { taxSystem: t.taxSystem === 'patent' ? undefined : 'patent' })}
+                                        className={`p-1 rounded-lg transition-all ${t.taxSystem === 'patent' ? 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'text-slate-300 hover:text-purple-500'}`}
+                                        title={t.taxSystem === 'patent' ? "Вернуть на УСН" : "Перенести на Патент"}
+                                    >
+                                        <Filter className="w-4 h-4" />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => onDelete(t.id)}
                                     className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
