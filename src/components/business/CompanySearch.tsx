@@ -1,8 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { fetchCompanyByInn, CompanySuggestion } from "@/lib/external-api";
+// import { fetchCompanyByInn, CompanySuggestion } from "@/lib/external-api";
+import { checkCompanyByInn } from "@/actions/external";
 import { Search, Loader2, Info } from "lucide-react";
+
+interface CompanyData {
+    inn: string;
+    kpp: string;
+    state: { status: "ACTIVE" | "LIQUIDATING" | "LIQUIDATED" | "BANKRUPT" | "REORGANIZING" };
+    address: { value: string };
+    management?: { name: string; post: string };
+}
+
+interface CompanySuggestion {
+    value: string;
+    data: CompanyData;
+}
 
 export function CompanySearch() {
     const [query, setQuery] = useState("");
@@ -19,9 +33,18 @@ export function CompanySearch() {
         setResult(null);
 
         try {
-            const suggestions = await fetchCompanyByInn(query);
-            if (suggestions && suggestions.length > 0) {
-                setResult(suggestions[0]); // Take the first best match
+            const response = await checkCompanyByInn(query);
+
+            if (!response.success) {
+                setError(response.error || "Произошла ошибка при поиске");
+                return;
+            }
+
+            if (response.data && response.data.length > 0) {
+                // We map the response data to our local component state structure if needed
+                // Or just use it directly if they match. 
+                // The server action returns CompanySuggestion[] which matches our local interface mostly.
+                setResult(response.data[0] as unknown as CompanySuggestion);
             } else {
                 setError("Компания с таким ИНН не найдена.");
             }
@@ -82,8 +105,8 @@ export function CompanySearch() {
                             <div>
                                 <span className="block text-gray-500 dark:text-gray-400 text-xs uppercase mb-1">Статус</span>
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${result.data.state.status === "ACTIVE"
-                                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                                     }`}>
                                     {result.data.state.status === "ACTIVE" ? "Действующая" : "Недействующая"}
                                 </span>
