@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 // import { fetchCompanyByInn, CompanySuggestion } from "@/lib/external-api";
-import { checkCompanyByInn } from "@/actions/external";
-import { Search, Loader2, Info } from "lucide-react";
+import { checkCompanyByInn, checkCompanyRisks } from "@/actions/external";
+import { Search, Loader2, Info, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
+import { RiskAnalysisWidget } from "./RiskAnalysisWidget";
 
 interface CompanyData {
     inn: string;
@@ -24,6 +25,9 @@ export function CompanySearch() {
     const [result, setResult] = useState<CompanySuggestion | null>(null);
     const [error, setError] = useState("");
 
+    const [riskLoading, setRiskLoading] = useState(false);
+    const [riskData, setRiskData] = useState<{ risks: string[]; reliability: "high" | "medium" | "low" } | null>(null);
+
     async function handleSearch(e: React.FormEvent) {
         e.preventDefault();
         if (!query) return;
@@ -31,6 +35,7 @@ export function CompanySearch() {
         setLoading(true);
         setError("");
         setResult(null);
+        setRiskData(null); // Reset risk data on new search
 
         try {
             const response = await checkCompanyByInn(query);
@@ -41,9 +46,6 @@ export function CompanySearch() {
             }
 
             if (response.data && response.data.length > 0) {
-                // We map the response data to our local component state structure if needed
-                // Or just use it directly if they match. 
-                // The server action returns CompanySuggestion[] which matches our local interface mostly.
                 setResult(response.data[0] as unknown as CompanySuggestion);
             } else {
                 setError("Компания с таким ИНН не найдена.");
@@ -52,6 +54,27 @@ export function CompanySearch() {
             setError("Ошибка при поиске. Проверьте соединение.");
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleRiskCheck() {
+        if (!result) return;
+        setRiskLoading(true);
+        try {
+            const response = await checkCompanyRisks(result.data.inn);
+            if (response.success) {
+                setRiskData({
+                    risks: response.risks,
+                    reliability: response.reliability
+                });
+            } else {
+                // Fallback if risk check fails
+                alert("Не удалось загрузить данные о рисках");
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setRiskLoading(false);
         }
     }
 
@@ -120,8 +143,8 @@ export function CompanySearch() {
                                     <div className="flex items-center gap-2">
                                         <span className={`w-2.5 h-2.5 rounded-full ${result.data.state.status === "ACTIVE" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-red-500"}`}></span>
                                         <span className={`font-medium ${result.data.state.status === "ACTIVE"
-                                            ? "text-green-700 dark:text-green-400"
-                                            : "text-red-700 dark:text-red-400"
+                                                ? "text-green-700 dark:text-green-400"
+                                                : "text-red-700 dark:text-red-400"
                                             }`}>
                                             {result.data.state.status === "ACTIVE" ? "Действующая" : "Недействующая"}
                                         </span>
@@ -141,14 +164,23 @@ export function CompanySearch() {
                                 )}
                             </div>
 
-                            <button
-                                type="button"
-                                className="w-full py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors flex items-center justify-center gap-2"
-                                onClick={() => alert("Функция проверки задолженности в разработке")}
-                            >
-                                <Info className="w-4 h-4" />
-                                Проверить задолженности и суды
-                            </button>
+                            {!riskData ? (
+                                <button
+                                    type="button"
+                                    onClick={handleRiskCheck}
+                                    disabled={riskLoading}
+                                    className="w-full py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {riskLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                                    Проверить задолженности и риски
+                                </button>
+                            ) : (
+                                <RiskAnalysisWidget
+                                    visible={true}
+                                    reliability={riskData.reliability}
+                                    risks={riskData.risks}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

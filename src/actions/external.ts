@@ -66,3 +66,45 @@ export async function checkCompanyByInn(query: string): Promise<{ success: boole
         return { success: false, error: "Ошибка при запросе к сервису данных" };
     }
 }
+
+export async function checkCompanyRisks(inn: string): Promise<{ success: boolean; risks: string[]; reliability: "high" | "medium" | "low" }> {
+    // In a real scenario, this would check arbitration cases, debts databases, etc.
+    // For now, we simulate this based on the status and random factors for demonstration (mock logic for "Consultant" feel).
+
+    // We can reuse the company check to get the status if we only have INN
+    const companyData = await checkCompanyByInn(inn);
+
+    if (!companyData.success || !companyData.data || companyData.data.length === 0) {
+        return { success: false, risks: ["Не удалось получить данные о компании"], reliability: "low" };
+    }
+
+    const company = companyData.data[0].data;
+    const risks: string[] = [];
+    let reliability: "high" | "medium" | "low" = "high";
+
+    if (company.state.status !== "ACTIVE") {
+        risks.push(`Статус компании: ${company.state.status} (Не действует)`);
+        reliability = "low";
+    }
+
+    // Mock random risks for demonstration of the "Consultant" feature
+    // In production, connect to specific APIs like Spark-Interfax or transparent business/API
+    const mockRiskFactors = [
+        { chance: 0.1, text: "Найдены исполнительные производства" },
+        { chance: 0.05, text: "Есть блокировки счетов" },
+        { chance: 0.15, text: "Судебные иски в качестве ответчика" },
+    ];
+
+    mockRiskFactors.forEach(factor => {
+        if (Math.random() < factor.chance) {
+            risks.push(factor.text);
+            if (reliability === "high") reliability = "medium";
+        }
+    });
+
+    if (risks.length === 0) {
+        risks.push("Факторов риска не обнаружено");
+    }
+
+    return { success: true, risks, reliability };
+}
