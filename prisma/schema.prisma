@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("SUPABASE_DIRECT_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // NextAuth Models
@@ -79,6 +79,15 @@ model Project {
   investments Investment[]
   revenues    Revenue[]
   expenses    Expense[]
+  
+  // Consultant relations
+  transactions Transaction[]
+  taxPayments  TaxPayment[]
+  
+  // New fields for business mode
+  type        String   @default("model") // model, business
+  taxSystem   String   @default("usn_6") // usn_6, usn_15, osv
+  settings    Json?    // Business specific settings
 }
 
 model Investment {
@@ -110,4 +119,36 @@ model Expense {
   type          String  @default("fixed") // fixed, variable
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// Business Consultant Models
+
+model Transaction {
+  id          String   @id @default(cuid())
+  projectId   String
+  date        DateTime
+  amount      Float
+  category    String
+  description String?  @db.Text
+  type        String   @default("expense") // income, expense
+  status      String   @default("paid")    // planned, paid
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model TaxPayment {
+  id          String   @id @default(cuid())
+  projectId   String
+  dueDate     DateTime
+  amount      Float
+  status      String   @default("pending") // pending, paid, overdue
+  period      String   // e.g., "Q1 2024", "2024"
+  taxType     String   // e.g., "usn", "insurance"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }

@@ -7,17 +7,20 @@ export const metadata: Metadata = {
   description: 'Создавайте, анализируйте и оптимизируйте финансовые модели для любого бизнеса с помощью искусственного интеллекта',
 };
 
+import { auth } from '@/auth';
 import { NextAuthProvider } from '@/components/providers/SessionProvider';
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className="antialiased">
-        <NextAuthProvider>
+        <NextAuthProvider session={session}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {children}
           </ThemeProvider>
