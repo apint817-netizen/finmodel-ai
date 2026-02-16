@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Upload, FileText, Check, AlertCircle, Loader2 } from "lucide-react";
 import { parseBankStatement } from "@/lib/bank-parser";
 import { Transaction } from "@/lib/business-logic";
+import { BankInstructions } from "./BankInstructions";
 
 interface BankUploadProps {
     onUpload: (transactions: Transaction[]) => void;
@@ -14,6 +15,7 @@ export function BankUpload({ onUpload, userInn }: BankUploadProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showGuide, setShowGuide] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const processFile = async (file: File) => {
@@ -99,6 +101,17 @@ export function BankUpload({ onUpload, userInn }: BankUploadProps) {
                     </div>
                 )}
             </div>
+
+            <div className="mt-4 text-center">
+                <button
+                    onClick={() => setShowGuide(!showGuide)}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                >
+                    {showGuide ? "Скрыть инструкцию" : "Не знаете, где взять файл?"}
+                </button>
+            </div>
+
+            {showGuide && <BankInstructions />}
 
             {error && (
                 <div className="mt-3 flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg animate-in slide-in-from-top-1">
