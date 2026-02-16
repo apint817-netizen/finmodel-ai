@@ -18,22 +18,41 @@ export function BankUpload({ onUpload, userInn }: BankUploadProps) {
     const [showGuide, setShowGuide] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const readFileContent = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                resolve(e.target?.result as string);
+            };
+
+            reader.onerror = (e) => {
+                reject(new Error("Ошибка чтения файла"));
+            };
+
+            // Vital: Read as Windows-1251 because 1C files are almost always in this encoding
+            reader.readAsText(file, 'windows-1251');
+        });
+    };
+
     const processFile = async (file: File) => {
         setIsProcessing(true);
         setError(null);
 
         try {
-            const text = await file.text();
+            // Updated to use specific encoding
+            const text = await readFileContent(file);
 
             // Check if it looks like a 1C file
             if (!text.includes("1CClientBankExchange")) {
-                throw new Error("Неверный формат файла. Требуется файл 1C (txt).");
+                throw new Error("Неверный формат файла или кодировка. Убедитесь, что это файл 1C (txt).");
             }
 
             const transactions = parseBankStatement(text, userInn);
 
             if (transactions.length === 0) {
-                throw new Error("В файле не найдено операций.");
+                // Should show what we parsed to debug if needed, but for now specific error
+                throw new Error("В файле не найдено операций. Возможно, выбран неверный период или тип выписки.");
             }
 
             // Simulate delay for effect
@@ -96,7 +115,7 @@ export function BankUpload({ onUpload, userInn }: BankUploadProps) {
                             Перетащите файл <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-xs">1c_to_kl.txt</code> или нажмите для выбора
                         </p>
                         <div className="text-xs text-slate-400">
-                            Поддерживается: Сбербанк, Тинькофф, Точка, Альфа
+                            Поддерживается: Сбербанк, Тинькофф, Точка, Альфа, Русский Стандарт
                         </div>
                     </div>
                 )}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, ExternalLink, HelpCircle } from "lucide-react";
 
-type BankId = 'sber' | 'tinkoff' | 'tochka' | 'modul' | 'alfa';
+type BankId = 'sber' | 'tinkoff' | 'tochka' | 'rsb' | 'alfa';
 
 interface Instruction {
     id: BankId;
@@ -19,9 +19,11 @@ const INSTRUCTIONS: Instruction[] = [
         name: 'СберБизнес',
         color: 'bg-green-600',
         steps: [
-            "Зайдите в раздел «Выписки и отчеты»",
-            "Нажмите «Скачать» → «Выписка по счету»",
-            "Выберите период и формат «1C (txt)»",
+            "Зайдите в раздел «Выписки и отчеты» на главной",
+            "Нажмите кнопку «Скачать» (справа вверху)",
+            "Выберите «Выписка по счету» или «1С»",
+            "В форме выберите период и формат «1C (txt)»",
+            "Важно: Кодировка должна быть «Windows (1251)»",
             "Нажмите «Скачать» и загрузите файл сюда"
         ],
         link: "https://sbi.sberbank.ru:9443/ic/dcb/"
@@ -34,7 +36,7 @@ const INSTRUCTIONS: Instruction[] = [
             "Перейдите в «Счета и платежи»",
             "Нажмите на иконку скачивания (стрелка вниз)",
             "Выберите «Выписка в 1С»",
-            "Скачайте файл и перетащите его сюда"
+            "Скачайте файл (.txt) и перетащите его сюда"
         ],
         link: "https://business.tbank.ru/"
     },
@@ -44,11 +46,24 @@ const INSTRUCTIONS: Instruction[] = [
         color: 'bg-purple-600',
         steps: [
             "Откройте раздел «Выписка»",
-            "Нажмите «Экспорт» в правом верхнем углу",
-            "Выберите «1С (.txt)»",
+            "Нажмите кнопку «Экспорт»",
+            "Выберите формат «1С» (.txt)",
             "Сохраните файл"
         ],
         link: "https://enter.tochka.com/"
+    },
+    {
+        id: 'rsb',
+        name: 'Русский Стандарт',
+        color: 'bg-rose-700',
+        steps: [
+            "Зайдите в Интернет-банк",
+            "Раздел «Счета» → «Выписка»",
+            "Выберите период и нажмите «Экспорт»",
+            "Выберите формат «1C Client Bank» (txt)",
+            "Скачайте файл"
+        ],
+        link: "https://online.rsb.ru/"
     },
     {
         id: 'alfa',
@@ -57,7 +72,7 @@ const INSTRUCTIONS: Instruction[] = [
         steps: [
             "Выписка → Скачать",
             "Выберите формат «1С»",
-            "Укажите период",
+            "Период: за всё время или квартал",
             "Скачайте файл"
         ],
         link: "https://link.alfabank.ru/"
