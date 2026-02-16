@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, BarChart3, Coffee, Scissors, Gamepad2, ShoppingCart, Archive, Trash2, RefreshCw, TrendingUp, Search, Loader2, Copy, FileText, Sparkles } from 'lucide-react';
+import { Plus, BarChart3, Coffee, Scissors, Gamepad2, ShoppingCart, Archive, Trash2, RefreshCw, TrendingUp, Search, Loader2, Copy, FileText, Sparkles, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useProjectStore, FinancialModel } from '@/lib/store';
 import { useState, useEffect } from 'react';
@@ -160,12 +160,21 @@ export function DashboardClient({ initialProjects }: { initialProjects: Financia
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link href="/dashboard" className="flex items-center gap-3">
-                        <div className="bg-blue-600 p-2 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-white" />
-                        </div>
-                        <h1 className="text-xl font-bold text-slate-900 dark:text-white">FinModel AI</h1>
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="/dashboard"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                            title="Назад к инструментам"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </Link>
+                        <Link href="/dashboard" className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2 rounded-lg">
+                                <TrendingUp className="w-6 h-6 text-white" />
+                            </div>
+                            <h1 className="text-xl font-bold text-slate-900 dark:text-white">FinModel AI</h1>
+                        </Link>
+                    </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
                         <UserButton />

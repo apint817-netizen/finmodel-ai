@@ -317,8 +317,9 @@ export function EditorClient({ initialProject }: { initialProject: FinancialMode
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2 sm:gap-3 overflow-hidden flex-1">
                             <Link
-                                href="/dashboard"
+                                href="/dashboard/projects"
                                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+                                title="Назад к проектам"
                             >
                                 <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                             </Link>
