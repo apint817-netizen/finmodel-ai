@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet } from "lucide-react";
+import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet, Upload, CloudLightning, ShieldCheck, ChevronRight } from "lucide-react";
 import { TransactionManager } from "./TransactionManager";
 import { BankUpload } from "./BankUpload";
 import { Transaction, calculateTax, TaxSystem } from "@/lib/business-logic";
 import { formatCurrency } from "@/lib/calculations";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ConsultantDashboardProps {
     data: any; // Business Profile
 }
 
 export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
-    // Local State for Transactions (persistence via localStorage in real app would be better wrapper)
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [accountTags, setAccountTags] = useState<Record<string, string>>({}); // Mapping Account -> Name
     const [metrics, setMetrics] = useState({
@@ -22,6 +22,21 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         profit: 0,
         taxLoad: 0
     });
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+    // Determine Main Tax System (USN or OSNO) from the array or string
+    // logic: look for usn_6, usn_15, or osno in taxSystems array or taxSystem string
+    const mainTaxSystem: TaxSystem = (() => {
+        const systems = Array.isArray(data.taxSystems) ? data.taxSystems : [data.taxSystem];
+        if (systems.includes('usn_6')) return 'usn_6';
+        if (systems.includes('usn_15')) return 'usn_15';
+        if (systems.includes('osno')) return 'osno';
+        return 'usn_6'; // Fallback
+    })();
+
+    const hasPatent = Array.isArray(data.taxSystems)
+        ? data.taxSystems.includes('patent')
+        : data.taxSystem === 'patent';
 
     useEffect(() => {
         // Load transactions
@@ -53,7 +68,9 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         }
         localStorage.setItem(`finmodel_tags_${data.name}`, JSON.stringify(accountTags));
 
-        const result = calculateTax(transactions, data.taxSystem as TaxSystem);
+        // Use the Determined Main System
+        const result = calculateTax(transactions, mainTaxSystem);
+
         setMetrics({
             income: result.income,
             expense: result.expense,
@@ -62,7 +79,7 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
             taxLoad: result.income > 0 ? parseFloat(((result.tax / result.income) * 100).toFixed(1)) : 0
         });
 
-    }, [transactions, data.taxSystem, data.name]);
+    }, [transactions, mainTaxSystem, data.name]);
 
     const handleAddTransaction = (t: Omit<Transaction, "id">) => {
         const newT = { ...t, id: crypto.randomUUID() };
@@ -71,8 +88,8 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
 
     const handleAddMultipleTransactions = (txs: Omit<Transaction, "id">[]) => {
         const newTxs = txs.map(t => ({ ...t, id: crypto.randomUUID() }));
-        // Merge and sort
         setTransactions(prev => [...newTxs, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setIsUploadModalOpen(false);
     };
 
     const handleDeleteTransaction = (id: string) => {
@@ -83,218 +100,213 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     };
 
-    // Calendar & Notifications Logic (Dynamic for 2026)
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth(); // 0-11
-
-    // Determine next tax payment
-    let nextPaymentDate = "";
-    let status: 'pending' | 'future' = 'pending';
-
-    // Tax schedule for USN 2026
-    if (currentMonth < 3 || (currentMonth === 3 && currentDate.getDate() <= 28)) { // Before Apr 28
-        nextPaymentDate = `28 апреля ${currentYear}`;
-    } else if (currentMonth < 6 || (currentMonth === 6 && currentDate.getDate() <= 28)) { // Before Jul 28
-        nextPaymentDate = `28 июля ${currentYear}`;
-    } else if (currentMonth < 9 || (currentMonth === 9 && currentDate.getDate() <= 28)) { // Before Oct 28
-        nextPaymentDate = `28 октября ${currentYear}`;
-    } else {
-        nextPaymentDate = `28 апреля ${currentYear + 1}`;
-    }
-
-    const taxSystem = data.taxSystem;
-    // Tax Calculation Logic
-    const stats = calculateTax(transactions, taxSystem);
-
-    // Calculate breakdown by system for display
-    const patentIncome = transactions
-        .filter(t => t.taxSystem === 'patent' && t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    const usnIncome = stats.income - patentIncome;
-
-    const safeLimit = 6.0;
-
     const handleUpdateTags = (account: string, name: string) => {
         setAccountTags(prev => ({ ...prev, [account]: name }));
     };
 
-    return (
-        <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-            {/* Status Banner */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+    // Calendar logic
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const nextPaymentDate = "28 апреля " + currentYear; // Simplified for demo
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
-                                {taxSystem === 'usn_6' ? 'УСН 6%' : taxSystem === 'usn_15' ? 'УСН 15%' : 'ОСНО'}
+    // Breakdown
+    const patentIncome = transactions
+        .filter(t => t.taxSystem === 'patent' && t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+    const usnIncome = metrics.income - patentIncome;
+    const safeLimit = 6.0;
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto">
+
+            {/* 1. New Header / Status Section */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                <div className="absolute -right-20 -top-20 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
+
+                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {/* Tax Status */}
+                    <div className="lg:col-span-2">
+                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                            <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md shadow-blue-500/20">
+                                {mainTaxSystem === 'usn_6' ? 'УСН Доходы' : mainTaxSystem === 'usn_15' ? 'УСН Д-Р' : 'ОСНО'}
                             </span>
-                            {patentIncome > 0 && (
-                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
+                            {hasPatent && (
+                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-purple-200 dark:border-purple-800">
                                     + Патент
                                 </span>
                             )}
-                            <span className="text-slate-400 text-sm">•</span>
-                            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Следующая уплата: {nextPaymentDate}</span>
                         </div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
-                            {formatCurrency(stats.tax)}
-                        </h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            Примерный налог к уплате (без учета взносов)
+                        <div className="flex items-baseline gap-4 mb-2">
+                            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                {formatCurrency(metrics.taxToPay)}
+                            </h2>
+                            <span className="text-slate-500 font-medium">к уплате</span>
+                        </div>
+                        <p className="text-slate-400 text-sm max-w-md">
+                            Расчетный налог за текущий период. Не забудьте уменьшить его на сумму страховых взносов перед оплатой.
                         </p>
-                    </div>
 
-                    <div className="flex gap-3">
-                        <button className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2">
-                            <ArrowUpRight className="w-5 h-5" />
-                            Оплатить
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600">
-                            <Wallet className="w-4 h-4" />
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 active:scale-95">
+                                <ArrowUpRight className="w-4 h-4" />
+                                Оплатить ЕНС
+                            </button>
+                            <button
+                                onClick={() => setIsUploadModalOpen(!isUploadModalOpen)}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2"
+                            >
+                                <Upload className="w-4 h-4" />
+                                {isUploadModalOpen ? 'Скрыть загрузку' : 'Загрузить выписку'}
+                            </button>
                         </div>
-                        <span className="text-slate-500 font-medium">Доход (Всего)</span>
                     </div>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{formatCurrency(stats.income)}</p>
-                    <div className="text-xs text-slate-400 flex flex-col gap-0.5">
-                        <span>УСН: {formatCurrency(usnIncome)}</span>
-                        <span>Патент: {formatCurrency(patentIncome)}</span>
-                    </div>
-                </div>
 
-            </div>
-
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[800px] lg:h-auto">
-
-                {/* Left Column: Stats & Transactions */}
-                <div className="lg:col-span-2 space-y-6 flex flex-col">
-                    {/* Quick Stats Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-2">
-                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
-                                    <DollarSign className="w-4 h-4" />
-                                </div>
-                                <span className="text-xs font-bold uppercase tracking-wider">Доход</span>
+                    {/* Key Metrics Cards */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
+                        <div className="flex items-start justify-between mb-4">
+                            <div>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Оборот</p>
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(metrics.income)}</p>
                             </div>
-                            <p className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white truncate">
-                                {formatCurrency(metrics.income)}
-                            </p>
-                            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
-                                <BankUpload
-                                    userInn={data.inn}
-                                    patentAccount={data.patentAccount}
-                                    onUpload={handleAddMultipleTransactions}
-                                />
+                            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 rounded-lg">
+                                <Wallet className="w-5 h-5" />
                             </div>
                         </div>
-                        <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-2">
-                                <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-lg">
-                                    <PieChart className="w-4 h-4" />
-                                </div>
-                                <span className="text-xs font-bold uppercase tracking-wider">Нагрузка</span>
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-500">УСН</span>
+                                <span className="font-medium dark:text-slate-300">{formatCurrency(usnIncome)}</span>
                             </div>
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{metrics.taxLoad}%</p>
-                                <span className="text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
-                                    Норма {safeLimit}%
+                            <div className="flex justify-between text-xs">
+                                <span className="text-slate-500">Патент</span>
+                                <span className="font-medium dark:text-slate-300">{formatCurrency(patentIncome)}</span>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full mt-2 overflow-hidden">
+                                <div
+                                    className="bg-blue-500 h-full"
+                                    style={{ width: `${(usnIncome / metrics.income) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
+                        <div className="flex items-start justify-between mb-4">
+                            <div>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Прибыль</p>
+                                <p className={`text-2xl font-bold ${metrics.profit > 0 ? 'text-slate-900 dark:text-white' : 'text-red-500'}`}>
+                                    {formatCurrency(metrics.profit)}
+                                </p>
+                            </div>
+                            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 text-orange-600 rounded-lg">
+                                <PieChart className="w-5 h-5" />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Нагрузка</p>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xl font-bold ${metrics.taxLoad > safeLimit ? 'text-amber-500' : 'text-slate-700 dark:text-slate-300'}`}>
+                                    {metrics.taxLoad}%
                                 </span>
+                                <span className="text-xs text-slate-400">/ {safeLimit}% норма</span>
                             </div>
                         </div>
-                        <div className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-2">
-                                <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-lg">
-                                    <ArrowUpRight className="w-4 h-4" />
-                                </div>
-                                <span className="text-xs font-bold uppercase tracking-wider">Прибыль</span>
-                            </div>
-                            <p className={`text-xl md:text-2xl font-bold truncate ${metrics.profit >= 0 ? 'text-slate-900 dark:text-white' : 'text-red-500'}`}>
-                                {formatCurrency(metrics.profit)}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Transaction Manager Component */}
-                    <div className="flex-1 min-h-[400px]">
-                        <TransactionManager
-                            transactions={transactions}
-                            accountTags={accountTags}
-                            onUpdateTags={handleUpdateTags}
-                            onAdd={handleAddTransaction}
-                            onAddMultiple={handleAddMultipleTransactions}
-                            onDelete={handleDeleteTransaction}
-                            onUpdate={handleUpdateTransaction}
-                        />
                     </div>
                 </div>
 
-                {/* Right Column: Suggestions & Calendar */}
+                {/* Upload Area (Collapsible) */}
+                <AnimatePresence>
+                    {isUploadModalOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6"
+                        >
+                            <BankUpload
+                                userInn={data.inn}
+                                patentAccount={data.patentAccount}
+                                onUpload={handleAddMultipleTransactions}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* 2. Main Content Grid */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
+                {/* Left: Transaction Table (Takes 2 columns on large screens) */}
+                <div className="xl:col-span-2 min-h-[600px] flex flex-col">
+                    <TransactionManager
+                        transactions={transactions}
+                        accountTags={accountTags}
+                        onUpdateTags={handleUpdateTags}
+                        onAdd={handleAddTransaction}
+                        onAddMultiple={handleAddMultipleTransactions}
+                        onDelete={handleDeleteTransaction}
+                        onUpdate={handleUpdateTransaction}
+                    />
+                </div>
+
+                {/* Right: Sidebar (AI & Calendar) */}
                 <div className="space-y-6">
-                    {/* AI Suggestions */}
-                    <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-900/30 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-indigo-500/20 transition-colors"></div>
+                    {/* Premium AI Card */}
+                    <div className="group relative bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white overflow-hidden shadow-xl shadow-indigo-500/20">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-700"></div>
 
-                        <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl text-indigo-600 dark:text-indigo-400 shadow-sm">
-                                <TrendingUp className="w-5 h-5" />
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-2 bg-white/20 backdrop-blur-md rounded-xl">
+                                    <CloudLightning className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="font-bold text-lg">Ассистент</h3>
                             </div>
-                            <h2 className="font-bold text-slate-900 dark:text-white">Совет AI</h2>
+
+                            <p className="text-indigo-100 text-sm leading-relaxed mb-6">
+                                {metrics.taxLoad > safeLimit
+                                    ? `Налоговая нагрузка ${metrics.taxLoad}% превышает безопасный порог. Рекомендую проверить расходы.`
+                                    : "Ваши показатели в норме. Вы можете уменьшить налог на сумму фиксированных взносов."
+                                }
+                            </p>
+
+                            <button className="w-full py-3 bg-white text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-colors shadow-lg shadow-black/10">
+                                Анализ расходов
+                            </button>
                         </div>
-
-                        {metrics.taxLoad > safeLimit ? (
-                            <p className="text-sm text-slate-700 dark:text-slate-300 mb-4 leading-relaxed relative z-10">
-                                Ваша налоговая нагрузка <strong>{metrics.taxLoad}%</strong>, что выше нормы. Проверьте, учли ли вы все расходы или страховые взносы для уменьшения базы.
-                            </p>
-                        ) : (
-                            <p className="text-sm text-slate-700 dark:text-slate-300 mb-4 leading-relaxed relative z-10">
-                                Вы можете уменьшить налог УСН на сумму уже уплаченных страховых взносов. Не забудьте подать уведомление до 25 апреля.
-                            </p>
-                        )}
-
-                        <button className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg relative z-10 hover:-translate-y-0.5">
-                            Анализировать расходы
-                        </button>
                     </div>
 
-                    {/* Upcoming Payments List */}
+                    {/* Tax Calendar */}
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Calendar className="w-5 h-5 text-slate-400" />
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Календарь оплат</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-slate-400" />
+                                Календарь
+                            </h3>
                         </div>
-                        <div className="relative pl-4 border-l-2 border-slate-100 dark:border-slate-800 space-y-6">
+
+                        <div className="space-y-0">
                             {[
-                                { date: "25 апр", title: "Аванс УСН за Q1", amount: formatCurrency(metrics.taxToPay), status: "pending" },
-                                { date: "28 апр", title: "Страховые взносы", amount: "12 500 ₽", status: "future" },
-                            ].map((event, idx) => (
-                                <div key={idx} className="relative group">
-                                    <div className={`absolute -left-[21px] top-1.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors ${event.status === 'pending' ? 'bg-amber-500 group-hover:bg-amber-400' : 'bg-slate-300'}`}></div>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-0.5">{event.date}</p>
-                                            <p className="font-medium text-slate-900 dark:text-white">{event.title}</p>
+                                { date: "25 апр", title: "Аванс УСН (Q1)", sum: formatCurrency(metrics.taxToPay), active: true },
+                                { date: "28 апр", title: "Страх. взносы", sum: "12 500 ₽", active: false },
+                                { date: "25 июл", title: "Аванс УСН (Q2)", sum: "0 ₽", active: false },
+                            ].map((item, i) => (
+                                <div key={i} className="flex relative pl-6 pb-6 last:pb-0 border-l border-slate-200 dark:border-slate-800">
+                                    <div className={`absolute -left-1.5 top-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${item.active ? 'bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-900/30' : 'bg-slate-300'}`}></div>
+                                    <div className="flex-1 -mt-1">
+                                        <div className="flex justify-between mb-1">
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{item.date}</span>
                                         </div>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{event.amount}</p>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-medium text-slate-900 dark:text-white text-sm">{item.title}</span>
+                                            <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{item.sum}</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );
