@@ -45,22 +45,52 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
         return Array.from(accs);
     }, [transactions]);
 
+    // Pagination & Sorting State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
+    const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
     const filteredTransactions = useMemo(() => {
-        return transactions.filter(t => {
+        let result = transactions.filter(t => {
             if (filterCategory !== "all" && t.category !== filterCategory) return false;
             // Filter by Account Tag or Number
             if (filterAccount !== "all") {
-                // filterAccount is 'WB' (tag) or '408...' (number)
-                // If filter matches tag name
                 const tagName = t.accountNumber ? accountTags[t.accountNumber] : null;
-                if (filterAccount === 'Untagged' && !tagName) return true; // Show untagged
+                if (filterAccount === 'Untagged' && !tagName) return true;
                 if (t.accountNumber === filterAccount) return true;
                 if (tagName === filterAccount) return true;
                 return false;
             }
             return true;
         });
-    }, [transactions, filterCategory, filterAccount, accountTags]);
+
+        // Sorting
+        result.sort((a, b) => {
+            if (sortBy === 'date') {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            } else {
+                return sortOrder === 'asc' ? a.amount - b.amount : b.amount - a.amount;
+            }
+        });
+
+        return result;
+    }, [transactions, filterCategory, filterAccount, accountTags, sortBy, sortOrder]);
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+    const paginatedTransactions = filteredTransactions.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,16 +134,16 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px]"> {/* Fixed height for scrolling */}
 
             {/* Header & Toolbar */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 sticky top-0 z-20">
                 <div className="flex items-center gap-3">
                     <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        Операции <span className="text-slate-400 text-sm font-normal">{transactions.length}</span>
+                        Операции <span className="text-slate-400 text-sm font-normal">{filteredTransactions.length}</span>
                     </h3>
 
-                    {/* Filters */}
+                    {/* Filters & Sort */}
                     <div className="flex items-center gap-2">
                         <select
                             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -124,22 +154,31 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
 
-                        {accounts.length > 0 && (
-                            <select
-                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[150px]"
-                                value={filterAccount}
-                                onChange={(e) => setFilterAccount(e.target.value)}
+                        <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                            <button
+                                onClick={() => setSortBy('date')}
+                                className={`px-2 py-1.5 text-xs ${sortBy === 'date' ? 'bg-slate-100 dark:bg-slate-700 font-medium' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
-                                <option value="all">Все счета</option>
-                                {accounts.map(acc => {
-                                    const tag = accountTags[acc];
-                                    return <option key={acc} value={tag || acc}>{tag ? `${tag} (...${acc.slice(-4)})` : `...${acc.slice(-4)}`}</option>
-                                })}
-                            </select>
-                        )}
+                                Дата
+                            </button>
+                            <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700"></div>
+                            <button
+                                onClick={() => setSortBy('amount')}
+                                className={`px-2 py-1.5 text-xs ${sortBy === 'amount' ? 'bg-slate-100 dark:bg-slate-700 font-medium' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                Сумма
+                            </button>
+                            <button
+                                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                className="px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-50 border-l border-slate-200 dark:border-slate-700"
+                            >
+                                {sortOrder === 'asc' ? '↑' : '↓'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
+                {/* ... (Actions same as before) ... */}
                 <div className="flex items-center gap-2">
                     {selectedIds.size > 0 ? (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
@@ -173,9 +212,10 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                 </div>
             </div>
 
-            {/* Account Tagging Section (Show if untagged detected or button) */}
+            {/* Account Tagging Section */}
             {accounts.length > 0 && onUpdateTags && (
-                <div className="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/20 flex flex-wrap gap-4 items-center">
+                <div className="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/20 flex flex-wrap gap-4 items-center flex-shrink-0">
+                    {/* ... same content ... */}
                     <span className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1">
                         <Tag className="w-3 h-3" />
                         Счета:
@@ -221,7 +261,7 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden border-b border-slate-100 dark:border-slate-800"
+                        className="overflow-hidden border-b border-slate-100 dark:border-slate-800 flex-shrink-0"
                     >
                         <div className="p-6 bg-slate-50 dark:bg-slate-900/50">
                             <BankUpload
@@ -246,7 +286,7 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm"
+                        className="overflow-hidden border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm flex-shrink-0"
                     >
                         <form onSubmit={handleSubmit} className="p-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
                             <div className="col-span-1">
@@ -300,15 +340,15 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
             </AnimatePresence>
 
             {/* List / Table */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-                {filteredTransactions.length === 0 ? (
+            <div className="flex-1 overflow-y-auto min-h-0 relative">
+                {paginatedTransactions.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8">
                         <FileText className="w-12 h-12 mb-2 opacity-50" />
                         <p className="text-sm">Нет операций</p>
                     </div>
                 ) : (
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50 dark:bg-slate-900/50 sticky top-0 z-10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider backdrop-blur-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-900/50 sticky top-0 z-10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider backdrop-blur-sm shadow-sm">
                             <tr>
                                 <th className="px-4 py-3 w-[40px] text-center">
                                     <input
@@ -330,7 +370,7 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredTransactions.map(t => {
+                            {paginatedTransactions.map(t => {
                                 const isSelected = selectedIds.has(t.id);
                                 return (
                                     <tr
@@ -397,6 +437,41 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                     </table>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50/50 dark:bg-slate-900/50 flex-shrink-0">
+                    <span className="text-slate-500">
+                        Показано {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredTransactions.length)} из {filteredTransactions.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Назад
+                        </button>
+                        {/* Simple numeric pages */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            // Logic to show ranges around current page could go here
+                            // For simplicity: just first 5 or logic to shift.
+                            // Let's keep it simple: just Prev/Next and Page X of Y
+                            return null;
+                        })}
+                        <span className="mx-2 font-medium text-slate-700 dark:text-slate-300">
+                            Стр. {currentPage} из {totalPages}
+                        </span>
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Вперед
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

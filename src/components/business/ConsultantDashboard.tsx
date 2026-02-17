@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet, Upload, CloudLightning, ShieldCheck, ChevronRight } from "lucide-react";
+import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet, Upload, CloudLightning, ShieldCheck, ChevronRight, Settings } from "lucide-react";
 import { TransactionManager } from "./TransactionManager";
 import { BankUpload } from "./BankUpload";
 import { Transaction, calculateTax, TaxSystem } from "@/lib/business-logic";
@@ -15,6 +15,12 @@ interface ConsultantDashboardProps {
 export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [accountTags, setAccountTags] = useState<Record<string, string>>({}); // Mapping Account -> Name
+
+    // Profile State (Local copy for editing)
+    const [profile, setProfile] = useState<any>(data);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+    // Metrics State
     const [metrics, setMetrics] = useState({
         income: 0,
         expense: 0,
@@ -25,22 +31,21 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
     // Determine Main Tax System (USN or OSNO) from the array or string
-    // logic: look for usn_6, usn_15, or osno in taxSystems array or taxSystem string
     const mainTaxSystem: TaxSystem = (() => {
-        const systems = Array.isArray(data.taxSystems) ? data.taxSystems : [data.taxSystem];
+        const systems = Array.isArray(profile.taxSystems) ? profile.taxSystems : [profile.taxSystem];
         if (systems.includes('usn_6')) return 'usn_6';
         if (systems.includes('usn_15')) return 'usn_15';
         if (systems.includes('osno')) return 'osno';
         return 'usn_6'; // Fallback
     })();
 
-    const hasPatent = Array.isArray(data.taxSystems)
-        ? data.taxSystems.includes('patent')
-        : data.taxSystem === 'patent';
+    const hasPatent = Array.isArray(profile.taxSystems)
+        ? profile.taxSystems.includes('patent')
+        : profile.taxSystem === 'patent';
 
     useEffect(() => {
         // Load transactions
-        const saved = localStorage.getItem(`finmodel_transactions_${data.name}`);
+        const saved = localStorage.getItem(`finmodel_transactions_${profile.name}`);
         if (saved) {
             setTransactions(JSON.parse(saved));
         } else {
@@ -53,20 +58,20 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         }
 
         // Load account tags
-        const savedTags = localStorage.getItem(`finmodel_tags_${data.name}`);
+        const savedTags = localStorage.getItem(`finmodel_tags_${profile.name}`);
         if (savedTags) {
             try {
                 setAccountTags(JSON.parse(savedTags));
             } catch (e) { console.error(e); }
         }
-    }, [data.name]);
+    }, [profile.name]);
 
     useEffect(() => {
         // Recalculate metrics when transactions change
         if (transactions.length > 0) {
-            localStorage.setItem(`finmodel_transactions_${data.name}`, JSON.stringify(transactions));
+            localStorage.setItem(`finmodel_transactions_${profile.name}`, JSON.stringify(transactions));
         }
-        localStorage.setItem(`finmodel_tags_${data.name}`, JSON.stringify(accountTags));
+        localStorage.setItem(`finmodel_tags_${profile.name}`, JSON.stringify(accountTags));
 
         // Use the Determined Main System
         const result = calculateTax(transactions, mainTaxSystem);
@@ -79,7 +84,15 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
             taxLoad: result.income > 0 ? parseFloat(((result.tax / result.income) * 100).toFixed(1)) : 0
         });
 
-    }, [transactions, mainTaxSystem, data.name]);
+    }, [transactions, mainTaxSystem, profile.name]);
+
+    // Save profile updates to localStorage (and update state)
+    const handleSaveProfile = (newProfile: any) => {
+        // In real app, call API
+        localStorage.setItem("finmodel_business_profile", JSON.stringify(newProfile));
+        setProfile(newProfile);
+        setIsEditingProfile(false);
+    };
 
     const handleAddTransaction = (t: Omit<Transaction, "id">) => {
         const newT = { ...t, id: crypto.randomUUID() };
@@ -117,7 +130,99 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
     const safeLimit = 6.0;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto">
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto relative">
+
+            {/* Edit Profile Modal */}
+            <AnimatePresence>
+                {isEditingProfile && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Настройки профиля</h3>
+                                <button onClick={() => setIsEditingProfile(false)} className="text-slate-400 hover:text-slate-600">×</button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Название</label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800"
+                                        value={profile.name}
+                                        onChange={e => setProfile({ ...profile, name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">ИНН</label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800"
+                                        value={profile.inn || ''}
+                                        onChange={e => setProfile({ ...profile, inn: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Налоговые режимы</label>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={profile.taxSystems?.includes('patent') || false}
+                                                onChange={e => {
+                                                    const current = profile.taxSystems || [];
+                                                    if (e.target.checked) setProfile({ ...profile, taxSystems: [...current, 'patent'] });
+                                                    else setProfile({ ...profile, taxSystems: current.filter((s: string) => s !== 'patent') });
+                                                }}
+                                            />
+                                            <span className="text-sm">Патент (ПСН)</span>
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm"
+                                            value={mainTaxSystem}
+                                            onChange={(e) => {
+                                                const newMain = e.target.value;
+                                                const current = profile.taxSystems || [];
+                                                // Remove existing main systems
+                                                const others = current.filter((s: string) => s === 'patent');
+                                                setProfile({ ...profile, taxSystems: [...others, newMain] });
+                                            }}
+                                        >
+                                            <option value="usn_6">УСН Доходы (6%)</option>
+                                            <option value="usn_15">УСН Доходы-Расходы (15%)</option>
+                                            <option value="osno">ОСНО</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {profile.taxSystems?.includes('patent') && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Счет для Патента (4 цифры)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800"
+                                            value={profile.patentAccount || ''}
+                                            onChange={e => setProfile({ ...profile, patentAccount: e.target.value })}
+                                            placeholder="40802..."
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                                <button onClick={() => setIsEditingProfile(false)} className="px-4 py-2 text-slate-500 hover:text-slate-700">Отмена</button>
+                                <button onClick={() => handleSaveProfile(profile)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Сохранить</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* 1. New Header / Status Section */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
@@ -126,15 +231,24 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                 <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {/* Tax Status */}
                     <div className="lg:col-span-2">
-                        <div className="flex flex-wrap items-center gap-3 mb-4">
-                            <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md shadow-blue-500/20">
-                                {mainTaxSystem === 'usn_6' ? 'УСН Доходы' : mainTaxSystem === 'usn_15' ? 'УСН Д-Р' : 'ОСНО'}
-                            </span>
-                            {hasPatent && (
-                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-purple-200 dark:border-purple-800">
-                                    + Патент
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-md shadow-blue-500/20">
+                                    {mainTaxSystem === 'usn_6' ? 'УСН Доходы' : mainTaxSystem === 'usn_15' ? 'УСН Д-Р' : 'ОСНО'}
                                 </span>
-                            )}
+                                {hasPatent && (
+                                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-purple-200 dark:border-purple-800">
+                                        + Патент
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setIsEditingProfile(true)}
+                                className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                                title="Настройки профиля"
+                            >
+                                <Settings className="w-5 h-5" />
+                            </button>
                         </div>
                         <div className="flex items-baseline gap-4 mb-2">
                             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white tracking-tight">

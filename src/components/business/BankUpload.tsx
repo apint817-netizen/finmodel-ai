@@ -17,6 +17,7 @@ export function BankUpload({ onUpload, userInn, patentAccount }: BankUploadProps
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showGuide, setShowGuide] = useState(false);
+    const [forcePatent, setForcePatent] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const readFileContent = (file: File): Promise<string> => {
@@ -56,6 +57,15 @@ export function BankUpload({ onUpload, userInn, patentAccount }: BankUploadProps
                 throw new Error("В файле не найдено операций. Возможно, выбран неверный период или тип выписки.");
             }
 
+            // Apply forcePatent if selected
+            if (forcePatent) {
+                transactions.forEach(t => {
+                    if (t.type === 'income') {
+                        t.taxSystem = 'patent';
+                    }
+                });
+            }
+
             // Simulate delay for effect
             await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -78,6 +88,18 @@ export function BankUpload({ onUpload, userInn, patentAccount }: BankUploadProps
 
     return (
         <div className="w-full">
+            <div className="flex items-center justify-center gap-2 mb-4">
+                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={forcePatent}
+                        onChange={(e) => setForcePatent(e.target.checked)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span>Это выписка со счета Патента</span>
+                </label>
+            </div>
+
             <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
