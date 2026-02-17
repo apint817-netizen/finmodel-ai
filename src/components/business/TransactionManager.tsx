@@ -171,6 +171,8 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
         }
     };
 
+    const [isManagingAccounts, setIsManagingAccounts] = useState(false);
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[600px]"> {/* Fixed height for scrolling */}
 
@@ -190,6 +192,17 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
 
                     {/* Filters & Sort */}
                     <div className="flex items-center gap-2">
+                        {/* Account Toggle Button */}
+                        {accounts.length > 0 && (
+                            <button
+                                onClick={() => setIsManagingAccounts(!isManagingAccounts)}
+                                className={`p-1.5 rounded-lg border transition-colors ${isManagingAccounts ? 'bg-blue-100 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                title="Управление счетами"
+                            >
+                                <Tag className="w-4 h-4" />
+                            </button>
+                        )}
+
                         <select
                             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={filterType}
@@ -266,47 +279,56 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                 </div>
             </div>
 
-            {/* Account Tagging Section */}
-            {accounts.length > 0 && onUpdateTags && (
-                <div className="px-4 py-3 bg-blue-50/50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/20 flex flex-wrap gap-4 items-center flex-shrink-0">
-                    {/* ... same content ... */}
-                    <span className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1">
-                        <Tag className="w-3 h-3" />
-                        Счета:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                        {accounts.map(acc => {
-                            const tag = accountTags[acc];
-                            return (
-                                <div key={acc} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm">
-                                    <span className="text-xs text-slate-500 font-mono">...{acc.slice(-4)}</span>
-                                    {tag ? (
-                                        <span
-                                            className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer hover:underline decoration-dashed"
-                                            onClick={() => {
-                                                const newName = prompt("Изменить название для счета (e.g. Ресторан, WB):", tag);
-                                                if (newName) onUpdateTags(acc, newName);
-                                            }}
-                                        >
-                                            {tag}
-                                        </span>
-                                    ) : (
-                                        <button
-                                            onClick={() => {
-                                                const name = prompt("Введите название для этого счета (например: WB, Магазин):");
-                                                if (name) onUpdateTags(acc, name);
-                                            }}
-                                            className="text-[10px] uppercase font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded"
-                                        >
-                                            + Назвать
-                                        </button>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            )}
+            {/* Account Tagging Section (Collapsible) */}
+            <AnimatePresence>
+                {isManagingAccounts && accounts.length > 0 && onUpdateTags && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden border-b border-slate-100 dark:border-slate-800 bg-blue-50/30 dark:bg-blue-900/10 flex-shrink-0"
+                    >
+                        <div className="px-4 py-3 flex flex-wrap gap-4 items-center">
+                            <span className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1">
+                                <Tag className="w-3 h-3" />
+                                Счета:
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                                {accounts.map(acc => {
+                                    const tag = accountTags[acc];
+                                    return (
+                                        <div key={acc} className="flex items-center gap-2 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 shadow-sm max-w-[200px]">
+                                            <span className="text-[10px] text-slate-400 font-mono truncate max-w-[60px]" title={acc}>...{acc.slice(-4)}</span>
+                                            {tag ? (
+                                                <span
+                                                    className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer hover:underline decoration-dashed truncate"
+                                                    title={tag}
+                                                    onClick={() => {
+                                                        const newName = prompt("Изменить название для счета (e.g. Ресторан, WB):", tag);
+                                                        if (newName) onUpdateTags(acc, newName);
+                                                    }}
+                                                >
+                                                    {tag}
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        const name = prompt("Введите название для этого счета (например: WB, Магазин):");
+                                                        if (name) onUpdateTags(acc, name);
+                                                    }}
+                                                    className="text-[10px] uppercase font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded"
+                                                >
+                                                    + Назвать
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Upload Area */}
             <AnimatePresence>
