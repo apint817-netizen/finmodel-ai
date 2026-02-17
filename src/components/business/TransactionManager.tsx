@@ -21,6 +21,8 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
     const [isUploading, setIsUploading] = useState(false);
     const [filterCategory, setFilterCategory] = useState<string>("all");
     const [filterAccount, setFilterAccount] = useState<string>("all");
+    const [filterType, setFilterType] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Selection State
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -34,7 +36,7 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
         date: new Date().toISOString().split('T')[0]
     });
 
-    const categories = ["Продажи", "Аренда", "Зарплата", "Налоги", "Маркетинг", "Закупка", "Прочее"];
+    const categories = ["Продажи", "Аренда", "Зарплата", "Налоги", "Маркетинг", "Закупка", "Банк", "Прочее"];
 
     // Derive unique accounts from transactions
     const accounts = useMemo(() => {
@@ -53,8 +55,13 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
 
     const filteredTransactions = useMemo(() => {
         let result = transactions.filter(t => {
+            // Filter by Type
+            if (filterType !== "all" && t.type !== filterType) return false;
+
+            // Filter by Category
             if (filterCategory !== "all" && t.category !== filterCategory) return false;
-            // Filter by Account Tag or Number
+
+            // Filter by Account
             if (filterAccount !== "all") {
                 const tagName = t.accountNumber ? accountTags[t.accountNumber] : null;
                 if (filterAccount === 'Untagged' && !tagName) return true;
@@ -62,6 +69,16 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                 if (tagName === filterAccount) return true;
                 return false;
             }
+
+            // Search by Description or Amount
+            if (searchQuery) {
+                const searchLower = searchQuery.toLowerCase();
+                const matchesDesc = (t.description || "").toLowerCase().includes(searchLower);
+                // Allow searching by exact amount amount (e.g. "1500")
+                const matchesAmount = t.amount.toString().includes(searchQuery);
+                return matchesDesc || matchesAmount;
+            }
+
             return true;
         });
 
@@ -77,7 +94,7 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
         });
 
         return result;
-    }, [transactions, filterCategory, filterAccount, accountTags, sortBy, sortOrder]);
+    }, [transactions, filterCategory, filterAccount, filterType, searchQuery, accountTags, sortBy, sortOrder]);
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
@@ -92,11 +109,32 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
         }
     };
 
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Remove non-digits/dots, then format with spaces
+        const raw = e.target.value.replace(/[^\d.]/g, '');
+        // We only store raw for now in state to simplify "parseFloat", 
+        // OR we can store formatted string and parse on submit.
+        // Let's store raw in state but display formatted? No, user wants input masking.
+        // Simple approach: Store raw in a separate Ref or just strip spaces on submit.
+        // Let's verify: user wants "automatically insert separators".
+
+        // Split integer and decimal
+        const parts = raw.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        const formatted = parts.join('.');
+
+        setNewTransaction({ ...newTransaction, amount: formatted });
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Remove spaces before parsing
+        const amountValue = parseFloat(newTransaction.amount.replace(/\s/g, ''));
+        if (isNaN(amountValue)) return;
+
         onAdd({
             date: new Date(newTransaction.date).toISOString(),
-            amount: parseFloat(newTransaction.amount),
+            amount: amountValue,
             type: newTransaction.type as "income" | "expense",
             category: newTransaction.category,
             description: newTransaction.description
@@ -138,13 +176,29 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
 
             {/* Header & Toolbar */}
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 sticky top-0 z-20">
-                <div className="flex items-center gap-3">
-                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        Операции <span className="text-slate-400 text-sm font-normal">{filteredTransactions.length}</span>
-                    </h3>
+                <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Поиск по названию или сумме..."
+                            className="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
 
                     {/* Filters & Sort */}
                     <div className="flex items-center gap-2">
+                        <select
+                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value)}
+                        >
+                            <option value="all">Все типы</option>
+                            <option value="income">Доход</option>
+                            <option value="expense">Расход</option>
+                        </select>
                         <select
                             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={filterCategory}
@@ -323,12 +377,12 @@ export function TransactionManager({ transactions, accountTags = {}, onUpdateTag
                             <div className="col-span-1">
                                 <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 block">Сумма</label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     required
                                     placeholder="0.00"
                                     className="w-full h-9 px-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
                                     value={newTransaction.amount}
-                                    onChange={e => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                                    onChange={handleAmountChange}
                                 />
                             </div>
                             <button type="submit" className="h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center">

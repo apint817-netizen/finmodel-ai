@@ -116,10 +116,24 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                         type = 'expense';
                     }
                 } else {
-                    // Heuristic
-                    const desc = currentDoc['НазначениеПлатежа']?.toLowerCase() || '';
-                    if (desc.includes('комиссия') || desc.includes('списание') || desc.includes('покупка')) {
-                        type = 'expense';
+                    // Heuristic fallback if INN is missing
+                    const desc = (currentDoc['НазначениеПлатежа'] || '').toLowerCase();
+                    // Stronger heuristics for expense
+                    if (
+                        desc.includes('комиссия') ||
+                        desc.includes('списание') ||
+                        desc.includes('покупка') ||
+                        desc.includes('оплата') ||
+                        desc.includes('перевод') ||
+                        desc.includes('выдача') ||
+                        desc.includes('перечисление')
+                    ) {
+                        // Check if it's NOT incoming payment (often "Оплата по счету" is incoming too...)
+                        // This is risky. Better to assume Income unless keywords strictly imply outgoing.
+                        // "Списание" is safe. "Комиссия" is safe.
+                        if (!desc.includes('поступление') && !desc.includes('зачисление')) {
+                            type = 'expense';
+                        }
                     }
                 }
 
@@ -130,12 +144,26 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                     const receiverAccount = currentDoc['ПолучательСчет'];
                     // Logic: patentAccount might be full or partial (last 4 digits)
                     if (receiverAccount) {
-                        if (patentAccount.length === 4 && receiverAccount.endsWith(patentAccount)) {
-                            taxSystem = 'patent';
-                        } else if (receiverAccount.includes(patentAccount)) {
+                        if (patentAccount.length >= 4 && receiverAccount.endsWith(patentAccount)) {
                             taxSystem = 'patent';
                         }
                     }
+                }
+
+                // Categorization
+                let category = 'Прочее';
+                const lower = (currentDoc['НазначениеПлатежа'] || '').toLowerCase();
+
+                if (type === 'income') {
+                    category = 'Продажи';
+                } else {
+                    // Expense categories
+                    if (lower.includes('комиссия') || lower.includes('банк') || lower.includes('обслуж')) category = 'Банк';
+                    else if (lower.includes('аренд')) category = 'Аренда';
+                    else if (lower.includes('налог') || lower.includes('взнос') || lower.includes('патент')) category = 'Налоги';
+                    else if (lower.includes('зарплат') || lower.includes('выплат') || lower.includes('преми')) category = 'Зарплата';
+                    else if (lower.includes('реклам') || lower.includes('маркетинг') || lower.includes('яндекс') || lower.includes('vk')) category = 'Маркетинг';
+                    else if (lower.includes('закуп') || lower.includes('товар') || lower.includes('материал')) category = 'Закупка';
                 }
 
                 transactions.push({
@@ -143,9 +171,10 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                     date: currentDoc['date'] || new Date().toISOString(),
                     amount: currentDoc['amount'] || 0,
                     type,
-                    category: currentDoc['category'] || 'Прочее',
+                    category,
                     description: currentDoc['НазначениеПлатежа'] || 'Без назначения',
-                    taxSystem: taxSystem
+                    taxSystem: taxSystem,
+                    accountNumber: type === 'income' ? currentDoc['ПолучательСчет'] : currentDoc['ПлательщикСчет']
                 });
             }
             inDoc = false;

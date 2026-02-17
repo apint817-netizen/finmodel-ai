@@ -88,6 +88,21 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
 
     // Save profile updates to localStorage (and update state)
     const handleSaveProfile = (newProfile: any) => {
+        // Updated Logic: Check if patent account changed or is set, and update existing income transactions
+        let updatedTransactions = [...transactions];
+        if (newProfile.patentAccount && newProfile.patentAccount.length >= 4) {
+            updatedTransactions = updatedTransactions.map(t => {
+                // If it's income AND matches account AND not already patent
+                if (t.type === 'income' && t.accountNumber) {
+                    if (t.accountNumber.endsWith(newProfile.patentAccount) || t.accountNumber.includes(newProfile.patentAccount)) {
+                        return { ...t, taxSystem: 'patent' };
+                    }
+                }
+                return t;
+            });
+            setTransactions(updatedTransactions);
+        }
+
         // In real app, call API
         localStorage.setItem("finmodel_business_profile", JSON.stringify(newProfile));
         setProfile(newProfile);
@@ -204,7 +219,7 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                                 </div>
                                 {profile.taxSystems?.includes('patent') && (
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Счет для Патента (4 цифры)</label>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Счет для Патента (4 цифры или номер)</label>
                                         <input
                                             type="text"
                                             className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800"
@@ -338,8 +353,8 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                             className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6"
                         >
                             <BankUpload
-                                userInn={data.inn}
-                                patentAccount={data.patentAccount}
+                                userInn={profile.inn || data.inn}
+                                patentAccount={profile.patentAccount || data.patentAccount}
                                 onUpload={handleAddMultipleTransactions}
                             />
                         </motion.div>
