@@ -86,47 +86,82 @@ export function parse1CStatement(content: string): Transaction[] {
     return transactions;
 }
 
-// Updated robust parser for the specific "Client-Bank" format
+// Robust parser for the 1C Client-Bank Exchange format
 export function parseBankStatement(content: string, userInn?: string, patentAccount?: string): Transaction[] {
     const lines = content.split('\n');
     const transactions: Transaction[] = [];
 
+    // Step 1: Extract the user's own account number from the file header.
+    // In 1C Client-Bank Exchange format, the account section looks like:
+    //   СекцияРасчСчет
+    //   РасчСчет=40802810...
+    //   ...
+    //   КонецРасчСчет
+    let userAccount: string | undefined = undefined;
+    let inAccountSection = false;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('СекцияРасчСчет')) {
+            inAccountSection = true;
+            continue;
+        }
+        if (trimmed.startsWith('КонецРасчСчет')) {
+            inAccountSection = false;
+            continue;
+        }
+        if (inAccountSection) {
+            const [key, ...vals] = trimmed.split('=');
+            if (key === 'РасчСчет' && vals.length > 0) {
+                userAccount = vals.join('=').trim();
+                break; // Found it, stop scanning
+            }
+        }
+    }
+
+    // Step 2: Parse each document
     let currentDoc: any = {};
     let inDoc = false;
 
     for (const line of lines) {
         const trimmed = line.trim();
+
         if (trimmed.startsWith('СекцияДокумент')) {
             inDoc = true;
             currentDoc = {};
             continue;
         }
+
         if (trimmed.startsWith('КонецДокумента')) {
-            if (inDoc) {
-                // Determine direction using standard 1C fields:
-                // СуммаПоступило > 0 => Income (credited to account)
-                // СуммаСписано > 0   => Expense (debited from account)
-                let type: 'income' | 'expense' = 'income'; // default
+            if (inDoc && (currentDoc['amount'] || 0) > 0) {
+                // Determine direction:
+                // Priority 1: Compare account numbers from the file header
+                let type: 'income' | 'expense' = 'income'; // safe default
 
-                const credited = currentDoc['СуммаПоступило'];  // income amount
-                const debited = currentDoc['СуммаСписано'];      // expense amount
-
-                if (credited !== undefined || debited !== undefined) {
-                    // Use the explicit amount fields from the statement
-                    if (debited && debited > 0) {
-                        type = 'expense';
-                        currentDoc['amount'] = debited;
-                    } else if (credited && credited > 0) {
-                        type = 'income';
-                        currentDoc['amount'] = credited;
+                if (userAccount) {
+                    const payerAccount = currentDoc['ПлательщикСчет'] || '';
+                    const receiverAccount = currentDoc['ПолучательСчет'] || '';
+                    if (payerAccount === userAccount) {
+                        type = 'expense'; // Money went OUT from user's account
+                    } else if (receiverAccount === userAccount) {
+                        type = 'income'; // Money came IN to user's account
+                    } else {
+                        // Account not matched exactly — try partial (last 11 digits)
+                        const shortUser = userAccount.slice(-11);
+                        if (payerAccount.endsWith(shortUser)) {
+                            type = 'expense';
+                        } else if (receiverAccount.endsWith(shortUser)) {
+                            type = 'income';
+                        }
                     }
                 } else if (userInn) {
-                    // Fallback: use INN to determine direction
+                    // Priority 2: INN comparison
                     if (currentDoc['ПлательщикИНН'] === userInn) {
                         type = 'expense';
+                    } else if (currentDoc['ПолучательИНН'] === userInn) {
+                        type = 'income';
                     }
                 } else {
-                    // Last resort heuristic: check description keywords
+                    // Priority 3: keyword heuristics in description
                     const desc = (currentDoc['НазначениеПлатежа'] || '').toLowerCase();
                     if (
                         desc.includes('комиссия') ||
@@ -142,43 +177,38 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                     }
                 }
 
-                // Patent Check by Account
+                // Patent check
                 let taxSystem: 'patent' | undefined = undefined;
                 if (patentAccount && type === 'income') {
-                    // Check if receiver account matches patent account
-                    const receiverAccount = currentDoc['ПолучательСчет'];
-                    // Logic: patentAccount might be full or partial (last 4 digits)
-                    if (receiverAccount) {
-                        if (patentAccount.length >= 4 && receiverAccount.endsWith(patentAccount)) {
-                            taxSystem = 'patent';
-                        }
+                    const receiverAccount = currentDoc['ПолучательСчет'] || '';
+                    if (receiverAccount && patentAccount.length >= 4 && receiverAccount.endsWith(patentAccount)) {
+                        taxSystem = 'patent';
                     }
                 }
 
                 // Categorization
-                let category = 'Прочее';
                 const lower = (currentDoc['НазначениеПлатежа'] || '').toLowerCase();
-
+                let category = 'Прочее';
                 if (type === 'income') {
                     category = 'Продажи';
                 } else {
-                    // Expense categories
                     if (lower.includes('комиссия') || lower.includes('банк') || lower.includes('обслуж')) category = 'Банк';
                     else if (lower.includes('аренд')) category = 'Аренда';
                     else if (lower.includes('налог') || lower.includes('взнос') || lower.includes('патент')) category = 'Налоги';
                     else if (lower.includes('зарплат') || lower.includes('выплат') || lower.includes('преми')) category = 'Зарплата';
                     else if (lower.includes('реклам') || lower.includes('маркетинг') || lower.includes('яндекс') || lower.includes('vk')) category = 'Маркетинг';
                     else if (lower.includes('закуп') || lower.includes('товар') || lower.includes('материал')) category = 'Закупка';
+                    else category = 'Прочее';
                 }
 
                 transactions.push({
                     id: crypto.randomUUID(),
                     date: currentDoc['date'] || new Date().toISOString(),
-                    amount: currentDoc['amount'] || 0,
+                    amount: currentDoc['amount'],
                     type,
                     category,
                     description: currentDoc['НазначениеПлатежа'] || 'Без назначения',
-                    taxSystem: taxSystem,
+                    taxSystem,
                     accountNumber: type === 'income' ? currentDoc['ПолучательСчет'] : currentDoc['ПлательщикСчет']
                 });
             }
@@ -198,14 +228,6 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                 }
             } else if (key === 'Сумма') {
                 currentDoc['amount'] = parseFloat(value.replace(',', '.'));
-            } else if (key === 'СуммаПоступило') {
-                // Standard 1C statement field: amount credited to account (income)
-                const v = parseFloat(value.replace(',', '.'));
-                if (v > 0) currentDoc['СуммаПоступило'] = v;
-            } else if (key === 'СуммаСписано') {
-                // Standard 1C statement field: amount debited from account (expense)
-                const v = parseFloat(value.replace(',', '.'));
-                if (v > 0) currentDoc['СуммаСписано'] = v;
             } else if (key === 'ПлательщикИНН') {
                 currentDoc['ПлательщикИНН'] = value;
             } else if (key === 'ПолучательИНН') {
@@ -216,15 +238,10 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                 currentDoc['ПолучательСчет'] = value;
             } else if (key === 'НазначениеПлатежа') {
                 currentDoc['НазначениеПлатежа'] = value;
-                // Categorization for currentDoc
-                const lower = value.toLowerCase();
-                if (lower.includes('комиссия') || lower.includes('обслуж')) currentDoc['category'] = 'Банк';
-                else if (lower.includes('аренд')) currentDoc['category'] = 'Аренда';
-                else if (lower.includes('налог')) currentDoc['category'] = 'Налоги';
-                else if (lower.includes('зарплат')) currentDoc['category'] = 'Зарплата';
-                else currentDoc['category'] = 'Продажи'; // Default for income usually
             }
         }
     }
+
     return transactions;
 }
+
