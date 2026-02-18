@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, Calendar, CreditCard, DollarSign, Download, ExternalLink, MoreVertical, PieChart, TrendingUp, AlertTriangle, Wallet, Upload, CloudLightning, ShieldCheck, ChevronRight, Settings } from "lucide-react";
+import { ArrowUpRight, Calendar, PieChart, Wallet, Upload, Settings } from "lucide-react";
 import { TransactionManager } from "./TransactionManager";
 import { BankUpload } from "./BankUpload";
+import { PaymentModal } from "./PaymentModal";
+import { AIAnalysisPanel } from "./AIAnalysisPanel";
 import { Transaction, calculateTax, TaxSystem } from "@/lib/business-logic";
 import { formatCurrency } from "@/lib/calculations";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,6 +31,7 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
         taxLoad: 0
     });
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     // Determine Main Tax System (USN or OSNO) from the array or string
     const mainTaxSystem: TaxSystem = (() => {
@@ -146,6 +149,16 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto relative">
+
+            {/* Payment Modal */}
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                taxAmount={metrics.taxToPay}
+                inn={profile.inn}
+                businessName={profile.name}
+                taxSystem={mainTaxSystem === 'usn_6' ? 'УСН 6%' : mainTaxSystem === 'usn_15' ? 'УСН 15%' : 'ОСНО'}
+            />
 
             {/* Edit Profile Modal */}
             <AnimatePresence>
@@ -276,7 +289,10 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                         </p>
 
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 active:scale-95">
+                            <button
+                                onClick={() => setIsPaymentModalOpen(true)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 active:scale-95"
+                            >
                                 <ArrowUpRight className="w-4 h-4" />
                                 Оплатить ЕНС
                             </button>
@@ -380,30 +396,12 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
 
                 {/* Right: Sidebar (AI & Calendar) */}
                 <div className="space-y-6">
-                    {/* Premium AI Card */}
-                    <div className="group relative bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white overflow-hidden shadow-xl shadow-indigo-500/20">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 transition-transform group-hover:scale-110 duration-700"></div>
-
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="p-2 bg-white/20 backdrop-blur-md rounded-xl">
-                                    <CloudLightning className="w-5 h-5 text-white" />
-                                </div>
-                                <h3 className="font-bold text-lg">Ассистент</h3>
-                            </div>
-
-                            <p className="text-indigo-100 text-sm leading-relaxed mb-6">
-                                {metrics.taxLoad > safeLimit
-                                    ? `Налоговая нагрузка ${metrics.taxLoad}% превышает безопасный порог. Рекомендую проверить расходы.`
-                                    : "Ваши показатели в норме. Вы можете уменьшить налог на сумму фиксированных взносов."
-                                }
-                            </p>
-
-                            <button className="w-full py-3 bg-white text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-colors shadow-lg shadow-black/10">
-                                Анализ расходов
-                            </button>
-                        </div>
-                    </div>
+                    {/* AI Analysis Panel */}
+                    <AIAnalysisPanel
+                        transactions={transactions}
+                        profile={profile}
+                        metrics={metrics}
+                    />
 
                     {/* Tax Calendar */}
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
