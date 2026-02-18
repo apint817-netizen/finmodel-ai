@@ -1,5 +1,21 @@
 export type TaxSystem = 'usn_6' | 'usn_15' | 'patent' | 'osno';
 
+// Fixed insurance contributions for 2026 (ИП без сотрудников)
+export const FIXED_CONTRIBUTIONS_2026 = 53658; // ₽
+
+// Real advance payment deadlines for USN 2026
+export const TAX_DEADLINES_2026 = [
+    { quarter: 1, deadline: new Date(2026, 3, 28), label: "Аванс УСН Q1", months: [0, 1, 2] },
+    { quarter: 2, deadline: new Date(2026, 6, 28), label: "Аванс УСН Q2", months: [3, 4, 5] },
+    { quarter: 3, deadline: new Date(2026, 9, 28), label: "Аванс УСН Q3", months: [6, 7, 8] },
+    { quarter: 4, deadline: new Date(2027, 2, 31), label: "Годовой УСН", months: [9, 10, 11] },
+];
+
+export const INSURANCE_DEADLINES_2026 = [
+    { deadline: new Date(2026, 11, 31), label: "Страх. взносы (фикс.)", amount: FIXED_CONTRIBUTIONS_2026 },
+    { deadline: new Date(2027, 6, 1), label: "Страх. взносы (1% с дохода >300к)", amount: null },
+];
+
 export interface Transaction {
     id: string;
     date: string;
@@ -65,3 +81,58 @@ export function calculateTax(transactions: Transaction[], globalSystem: TaxSyste
         profit: totalIncome - totalExpense - Math.round(tax)
     };
 }
+
+/**
+ * Calculate net tax after insurance contribution deduction.
+ * For ИП without employees on УСН 6%: can reduce tax by 100% of fixed contributions.
+ * For ИП with employees on УСН 6%: can reduce tax by 50% of fixed contributions.
+ */
+export function calculateNetTax(
+    grossTax: number,
+    income: number,
+    taxSystem: TaxSystem,
+    hasEmployees: boolean = false
+): {
+    grossTax: number;
+    fixedContributions: number;
+    variableContributions: number;
+    totalContributions: number;
+    deductionLimit: number;
+    netTax: number;
+} {
+    const fixedContributions = FIXED_CONTRIBUTIONS_2026;
+    // 1% on income over 300k (capped at 277,571 ₽ in 2026)
+    const variableContributions = Math.min(Math.max(0, (income - 300_000) * 0.01), 277_571);
+    const totalContributions = fixedContributions + variableContributions;
+
+    let netTax = grossTax;
+    if (taxSystem === 'usn_6') {
+        const deductionLimit = hasEmployees ? grossTax * 0.5 : grossTax;
+        const deduction = Math.min(totalContributions, deductionLimit);
+        netTax = Math.max(0, grossTax - deduction);
+        return { grossTax, fixedContributions, variableContributions, totalContributions, deductionLimit, netTax };
+    }
+
+    // For USN 15%, contributions are included as expenses — no separate deduction here
+    return { grossTax, fixedContributions, variableContributions, totalContributions, deductionLimit: 0, netTax };
+}
+
+// Keyword-based category suggestion (client-side, no API)
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+    "Аренда": ["аренда", "rent", "помещение", "офис", "склад"],
+    "Зарплата": ["зарплата", "зп", "оклад", "salary", "выплата сотрудник"],
+    "Маркетинг": ["реклама", "яндекс", "google", "таргет", "продвижение", "smm"],
+    "Закупка": ["закупка", "товар", "материал", "поставщик", "оптовый"],
+    "Налоги": ["налог", "ндс", "усн", "фнс", "страховые", "взнос", "пфр"],
+    "Банк": ["комиссия", "обслуживание", "банк", "эквайринг", "rko"],
+    "Продажи": ["оплата", "поступление", "выручка", "клиент", "покупатель"],
+};
+
+export function suggestCategory(description: string): string {
+    const lower = description.toLowerCase();
+    for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+        if (keywords.some(kw => lower.includes(kw))) return category;
+    }
+    return "Прочее";
+}
+
