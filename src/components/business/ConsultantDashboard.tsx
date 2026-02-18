@@ -32,6 +32,7 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
     });
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [pendingUpload, setPendingUpload] = useState<Transaction[] | null>(null);
 
     // Determine Main Tax System (USN or OSNO) from the array or string
     const mainTaxSystem: TaxSystem = (() => {
@@ -119,8 +120,42 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
 
     const handleAddMultipleTransactions = (txs: Omit<Transaction, "id">[]) => {
         const newTxs = txs.map(t => ({ ...t, id: crypto.randomUUID() }));
-        setTransactions(prev => [...newTxs, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        // If there are already transactions, show confirmation dialog
+        if (transactions.length > 0) {
+            setPendingUpload(newTxs);
+        } else {
+            // No existing transactions — just load directly
+            setTransactions(newTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setIsUploadModalOpen(false);
+        }
+    };
+
+    const confirmReplace = () => {
+        if (!pendingUpload) return;
+        setTransactions(pendingUpload.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setPendingUpload(null);
         setIsUploadModalOpen(false);
+    };
+
+    const confirmMerge = () => {
+        if (!pendingUpload) return;
+        setTransactions(prev => {
+            // Deduplication key: date (day only) + amount + first 50 chars of description
+            const existingKeys = new Set(
+                prev.map(t => `${t.date.slice(0, 10)}_${t.amount}_${(t.description || '').slice(0, 50)}`)
+            );
+            const uniqueNew = pendingUpload.filter(t => {
+                const key = `${t.date.slice(0, 10)}_${t.amount}_${(t.description || '').slice(0, 50)}`;
+                return !existingKeys.has(key);
+            });
+            return [...uniqueNew, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+        setPendingUpload(null);
+        setIsUploadModalOpen(false);
+    };
+
+    const cancelUpload = () => {
+        setPendingUpload(null);
     };
 
     const handleDeleteTransaction = (id: string) => {
@@ -297,7 +332,10 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                                 Оплатить ЕНС
                             </button>
                             <button
-                                onClick={() => setIsUploadModalOpen(!isUploadModalOpen)}
+                                onClick={() => {
+                                    setIsUploadModalOpen(v => !v);
+                                    setPendingUpload(null);
+                                }}
                                 className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2"
                             >
                                 <Upload className="w-4 h-4" />
@@ -366,16 +404,75 @@ export function ConsultantDashboard({ data }: ConsultantDashboardProps) {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6"
+                            className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-6 overflow-hidden"
                         >
-                            <BankUpload
-                                userInn={profile.inn || data.inn}
-                                patentAccount={profile.patentAccount || data.patentAccount}
-                                onUpload={handleAddMultipleTransactions}
-                            />
+                            {/* Confirmation dialog — shown after file is parsed */}
+                            {pendingUpload ? (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0 text-amber-600 text-xl">
+                                            📋
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-slate-900 dark:text-white mb-1">
+                                                Найдено {pendingUpload.length} операций
+                                            </p>
+                                            <div className="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-400 mb-4">
+                                                <span className="flex items-center gap-1">
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                                                    Доходы: {pendingUpload.filter(t => t.type === 'income').length}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+                                                    Расходы: {pendingUpload.filter(t => t.type === 'expense').length}
+                                                </span>
+                                                {transactions.length > 0 && (
+                                                    <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                                        ⚠ Уже есть {transactions.length} операций
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                                Что сделать с текущими операциями?
+                                            </p>
+                                            <div className="flex flex-wrap gap-3">
+                                                <button
+                                                    onClick={confirmReplace}
+                                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm active:scale-95"
+                                                >
+                                                    Заменить все
+                                                </button>
+                                                <button
+                                                    onClick={confirmMerge}
+                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm active:scale-95"
+                                                >
+                                                    Добавить (без дублей)
+                                                </button>
+                                                <button
+                                                    onClick={cancelUpload}
+                                                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all"
+                                                >
+                                                    Отмена
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ) : (
+                                <BankUpload
+                                    userInn={profile.inn || data.inn}
+                                    patentAccount={profile.patentAccount || data.patentAccount}
+                                    onUpload={handleAddMultipleTransactions}
+                                />
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
+
             </div>
 
             {/* 2. Main Content Grid */}
