@@ -94,9 +94,6 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
     let currentDoc: any = {};
     let inDoc = false;
 
-    // Use a basic heuristic if no userInn provided: majority of transactions might be income? 
-    // Or check existing database.
-
     for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed.startsWith('СекцияДокумент')) {
@@ -106,31 +103,39 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
         }
         if (trimmed.startsWith('КонецДокумента')) {
             if (inDoc) {
-                // Determine direction
-                // "ПолучательИНН" == userInn => Income
-                // "ПлательщикИНН" == userInn => Expense
-
+                // Determine direction using standard 1C fields:
+                // СуммаПоступило > 0 => Income (credited to account)
+                // СуммаСписано > 0   => Expense (debited from account)
                 let type: 'income' | 'expense' = 'income'; // default
-                if (userInn) {
+
+                const credited = currentDoc['СуммаПоступило'];  // income amount
+                const debited = currentDoc['СуммаСписано'];      // expense amount
+
+                if (credited !== undefined || debited !== undefined) {
+                    // Use the explicit amount fields from the statement
+                    if (debited && debited > 0) {
+                        type = 'expense';
+                        currentDoc['amount'] = debited;
+                    } else if (credited && credited > 0) {
+                        type = 'income';
+                        currentDoc['amount'] = credited;
+                    }
+                } else if (userInn) {
+                    // Fallback: use INN to determine direction
                     if (currentDoc['ПлательщикИНН'] === userInn) {
                         type = 'expense';
                     }
                 } else {
-                    // Heuristic fallback if INN is missing
+                    // Last resort heuristic: check description keywords
                     const desc = (currentDoc['НазначениеПлатежа'] || '').toLowerCase();
-                    // Stronger heuristics for expense
                     if (
                         desc.includes('комиссия') ||
                         desc.includes('списание') ||
                         desc.includes('покупка') ||
-                        desc.includes('оплата') ||
                         desc.includes('перевод') ||
                         desc.includes('выдача') ||
                         desc.includes('перечисление')
                     ) {
-                        // Check if it's NOT incoming payment (often "Оплата по счету" is incoming too...)
-                        // This is risky. Better to assume Income unless keywords strictly imply outgoing.
-                        // "Списание" is safe. "Комиссия" is safe.
                         if (!desc.includes('поступление') && !desc.includes('зачисление')) {
                             type = 'expense';
                         }
@@ -193,6 +198,14 @@ export function parseBankStatement(content: string, userInn?: string, patentAcco
                 }
             } else if (key === 'Сумма') {
                 currentDoc['amount'] = parseFloat(value.replace(',', '.'));
+            } else if (key === 'СуммаПоступило') {
+                // Standard 1C statement field: amount credited to account (income)
+                const v = parseFloat(value.replace(',', '.'));
+                if (v > 0) currentDoc['СуммаПоступило'] = v;
+            } else if (key === 'СуммаСписано') {
+                // Standard 1C statement field: amount debited from account (expense)
+                const v = parseFloat(value.replace(',', '.'));
+                if (v > 0) currentDoc['СуммаСписано'] = v;
             } else if (key === 'ПлательщикИНН') {
                 currentDoc['ПлательщикИНН'] = value;
             } else if (key === 'ПолучательИНН') {
