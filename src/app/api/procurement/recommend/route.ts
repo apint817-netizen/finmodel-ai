@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiClient } from "@/lib/ai-client";
 
-// Allow up to 60 seconds on Vercel
 export const maxDuration = 60;
 
-// Helper: retry with exponential backoff for rate-limit (429)
+// Retry with exponential backoff for rate-limit (429)
 async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
@@ -12,7 +11,7 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3): Promise<T
         } catch (error: any) {
             const status = error?.status || error?.response?.status;
             if (status === 429 && attempt < retries) {
-                const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
+                const delay = Math.min(3000 * Math.pow(2, attempt), 15000);
                 console.log(`Rate limited (429), retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`);
                 await new Promise((r) => setTimeout(r, delay));
                 continue;
@@ -31,50 +30,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Описание бизнеса обязательно" }, { status: 400 });
         }
 
-        const systemPrompt = `Ты — бизнес-консультант по закупкам в России.
-Составь чек-лист необходимого оборудования и товаров для открытия бизнеса.
+        const systemPrompt = `Ты бизнес-консультант по закупкам в России. Составь краткий чек-лист закупок.
 
-Правила:
-- Для каждого пункта предлагай 3 варианта: budget, optimal, premium
-- Цены в рублях (2025-2026)
-- Учитывай город
-- Добавь предупреждения по лицензиям/разрешениям
+Ответ JSON без markdown:
+{"businessType":"тип","categories":["Кат1"],"items":[{"id":"item_1","category":"Кат1","name":"Что купить","quantity":1,"description":"Зачем","priority":"required","products":[{"id":"p1","name":"Товар","variant":"budget","price":10000,"rating":4.5,"marketplace":"yandex_market","reason":"Почему"},{"id":"p2","name":"Товар2","variant":"optimal","price":20000,"rating":4.7,"marketplace":"ozon","reason":"Почему"},{"id":"p3","name":"Товар3","variant":"premium","price":40000,"rating":4.9,"marketplace":"wildberries","reason":"Почему"}]}],"warnings":["Текст"],"tips":["Текст"]}
 
-Формат JSON (без markdown):
-{
-  "businessType": "тип бизнеса",
-  "categories": ["Категория1"],
-  "items": [
-    {
-      "id": "item_1",
-      "category": "Категория",
-      "name": "Название",
-      "quantity": 1,
-      "description": "Зачем нужен",
-      "priority": "required",
-      "products": [
-        {"id": "p1", "name": "Товар для поиска", "variant": "budget", "price": 10000, "rating": 4.5, "marketplace": "yandex_market", "reason": "Почему"}
-      ]
-    }
-  ],
-  "warnings": ["..."],
-  "tips": ["..."]
-}
+Правила: 5 позиций, 2-3 категории, каждая = 3 продукта (budget/optimal/premium), цены в рублях 2025. Кратко!`;
 
-Генерируй 5-8 позиций, 3-4 категории. Каждая позиция = ровно 3 продукта (budget, optimal, premium). Будь кратким.`;
-
-        const userMessage = `Бизнес: ${businessDescription}
-Город: ${city || "Москва"}
-Бюджет: ${budget ? budget.toLocaleString("ru-RU") + " ₽" : "Не указан"}`;
+        const userMessage = `${businessDescription}, ${city || "Москва"}, бюджет: ${budget ? budget.toLocaleString("ru-RU") + "₽" : "не указан"}`;
 
         const response = await retryWithBackoff(() =>
             aiClient.chat.completions.create({
-                model: "gemini-2.0-flash",
+                model: "gemini-1.5-flash",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userMessage },
                 ],
                 temperature: 0.6,
+                response_format: { type: "json_object" },
             })
         );
 
@@ -101,12 +74,11 @@ export async function POST(req: NextRequest) {
             };
         }
 
-        // Add search URLs to products
-        const marketplaceSearchBases: Record<string, string> = {
+        // Add search URLs
+        const bases: Record<string, string> = {
             yandex_market: "https://market.yandex.ru/search?text=",
             ozon: "https://www.ozon.ru/search/?text=",
             wildberries: "https://www.wildberries.ru/catalog/0/search.aspx?search=",
-            other: "https://www.google.com/search?q=купить+",
         };
 
         if (parsed.items) {
@@ -115,7 +87,7 @@ export async function POST(req: NextRequest) {
                 checked: false,
                 products: (item.products || []).map((p: any) => ({
                     ...p,
-                    searchUrl: (marketplaceSearchBases[p.marketplace] || marketplaceSearchBases.other)
+                    searchUrl: (bases[p.marketplace] || "https://www.google.com/search?q=купить+")
                         + encodeURIComponent(p.name),
                 })),
             }));
@@ -136,7 +108,6 @@ export async function POST(req: NextRequest) {
         const message = error?.message || "Unknown error";
         const status = error?.status || 500;
 
-        // User-friendly message for rate limits
         if (status === 429) {
             return NextResponse.json(
                 { error: "AI-сервис временно перегружен. Подождите 30 секунд и попробуйте снова." },

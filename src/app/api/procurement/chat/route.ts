@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 Формат ответа: обычный текст с markdown-форматированием (жирный, списки, заголовки).`;
 
         const response = await aiClient.chat.completions.create({
-            model: "gemini-2.0-flash",
+            model: "gemini-1.5-flash",
             messages: [
                 { role: "system", content: systemPrompt },
                 ...messages.map((m: any) => ({
