@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-export const maxDuration = 60;
+import { aiClient } from "@/lib/ai-client";
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,70 +9,56 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Описание бизнеса обязательно" }, { status: 400 });
         }
 
-        const apiKey = process.env.GOOGLE_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: "GOOGLE_API_KEY не настроен" }, { status: 500 });
-        }
+        const systemPrompt = `Ты бизнес-консультант по закупкам в России. Составь чек-лист закупок.
+Отвечай ТОЛЬКО в формате JSON (без markdown-обёртки).
 
-        const prompt = `Ты бизнес-консультант по закупкам в России. 
-Бизнес: ${businessDescription}
+Формат ответа:
+{
+  "businessType": "тип бизнеса",
+  "categories": ["Категория1", "Категория2"],
+  "items": [
+    {
+      "id": "item_1",
+      "category": "Категория1",
+      "name": "Название",
+      "quantity": 1,
+      "description": "Зачем нужен",
+      "priority": "required",
+      "products": [
+        {"id": "p1", "name": "Название товара", "variant": "budget", "price": 10000, "rating": 4.5, "marketplace": "yandex_market", "reason": "Почему"},
+        {"id": "p2", "name": "Название товара", "variant": "optimal", "price": 20000, "rating": 4.7, "marketplace": "ozon", "reason": "Почему"},
+        {"id": "p3", "name": "Название товара", "variant": "premium", "price": 40000, "rating": 4.9, "marketplace": "wildberries", "reason": "Почему"}
+      ]
+    }
+  ],
+  "warnings": ["Текст предупреждения"],
+  "tips": ["Полезный совет"]
+}
+
+5 позиций, 2-3 категории, 3 продукта на позицию. Цены в рублях 2025. Кратко!`;
+
+        const userMessage = `Бизнес: ${businessDescription}
 Город: ${city || "Москва"}
-Бюджет: ${budget ? budget.toLocaleString("ru-RU") + "₽" : "не указан"}
+Бюджет: ${budget ? budget.toLocaleString("ru-RU") + " ₽" : "Не указан"}`;
 
-Составь чек-лист закупок. Ответ строго JSON (без markdown, без тройных кавычек):
-{"businessType":"тип","categories":["Кат1","Кат2"],"items":[{"id":"item_1","category":"Кат1","name":"Что купить","quantity":1,"description":"Зачем","priority":"required","products":[{"id":"p1","name":"Товар","variant":"budget","price":10000,"rating":4.5,"marketplace":"yandex_market","reason":"Почему"},{"id":"p2","name":"Товар2","variant":"optimal","price":20000,"rating":4.7,"marketplace":"ozon","reason":"Почему"},{"id":"p3","name":"Товар3","variant":"premium","price":40000,"rating":4.9,"marketplace":"wildberries","reason":"Почему"}]}],"warnings":["Текст"],"tips":["Текст"]}
-
-5 позиций, 2-3 категории, 3 продукта на позицию (budget/optimal/premium). Цены рублях 2025. Кратко!`;
-
-        // Use Google Generative AI REST API directly (not OpenAI-compatible endpoint)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
-
-        const body = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.6,
-                responseMimeType: "application/json",
-            },
-        };
-
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
+        const response = await aiClient.chat.completions.create({
+            model: "gemini-2.0-flash",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userMessage },
+            ],
+            temperature: 0.5,
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Google API error:", response.status, errorText);
-
-            if (response.status === 429) {
-                return NextResponse.json(
-                    { error: "AI-сервис временно перегружен. Подождите 30 секунд и попробуйте снова." },
-                    { status: 429 }
-                );
-            }
-
-            return NextResponse.json(
-                { error: `Ошибка Google API: ${response.status} - ${errorText.slice(0, 200)}` },
-                { status: response.status }
-            );
-        }
-
-        const data = await response.json();
-        const content = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+        const content = response.choices[0]?.message?.content ?? "{}";
 
         // Strip markdown code fences if present
-        const cleaned = content
-            .replace(/^```json\s*/i, "")
-            .replace(/^```\s*/i, "")
-            .replace(/```\s*$/i, "")
-            .trim();
+        const cleaned = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
         let parsed;
         try {
             parsed = JSON.parse(cleaned);
         } catch {
-            console.error("Failed to parse AI response:", cleaned.slice(0, 500));
             parsed = {
                 businessType: businessDescription,
                 categories: [],
@@ -115,7 +100,7 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error("Procurement recommend error:", error);
         return NextResponse.json(
-            { error: `Ошибка: ${(error?.message || "Unknown").slice(0, 200)}` },
+            { error: "Не удалось получить анализ. Убедитесь, что AI-сервис доступен." },
             { status: 500 }
         );
     }
