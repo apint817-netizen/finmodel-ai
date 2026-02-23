@@ -99,9 +99,12 @@ export async function POST(req: NextRequest) {
         });
     } catch (error: any) {
         console.error("Procurement recommend error:", error);
+        const msg = error?.message || "Unknown";
+        const status = error?.status || error?.statusCode || 500;
+        const body = error?.error?.message || error?.response?.data?.error?.message || "";
         return NextResponse.json(
-            { error: "Не удалось получить анализ. Убедитесь, что AI-сервис доступен." },
-            { status: 500 }
+            { error: `Ошибка (${status}): ${msg}. ${body}`.trim() },
+            { status: typeof status === "number" ? status : 500 }
         );
     }
 }
