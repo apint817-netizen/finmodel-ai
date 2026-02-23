@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Bot, PieChart, Presentation } from "lucide-react";
+import { BarChart3, Bot, PieChart, Presentation, ShoppingCart } from "lucide-react";
 import { ToolCard } from "./ToolCard";
 
 export function ToolsGrid() {
@@ -20,8 +20,17 @@ export function ToolsGrid() {
                 description="Ваш персональный финансовый директор. Анализ рисков, налоговая оптимизация и советы по управлению финансами."
                 icon={Bot}
                 href="/dashboard/business"
-                status="new"
+                status="active"
                 color="indigo"
+            />
+
+            <ToolCard
+                title="AI Бизнес-Закупщик"
+                description="AI подберёт всё необходимое для открытия бизнеса. Оборудование, мебель, техника — со ссылками на покупку."
+                icon={ShoppingCart}
+                href="/dashboard/procurement"
+                status="new"
+                color="amber"
             />
 
             <ToolCard
