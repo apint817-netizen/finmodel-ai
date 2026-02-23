@@ -32,22 +32,21 @@ export async function POST(req: NextRequest) {
 
         const systemPrompt = `Ты бизнес-консультант по закупкам в России. Составь краткий чек-лист закупок.
 
-Ответ JSON без markdown:
+Ответ строго JSON без markdown-обёрток (без тройных кавычек):
 {"businessType":"тип","categories":["Кат1"],"items":[{"id":"item_1","category":"Кат1","name":"Что купить","quantity":1,"description":"Зачем","priority":"required","products":[{"id":"p1","name":"Товар","variant":"budget","price":10000,"rating":4.5,"marketplace":"yandex_market","reason":"Почему"},{"id":"p2","name":"Товар2","variant":"optimal","price":20000,"rating":4.7,"marketplace":"ozon","reason":"Почему"},{"id":"p3","name":"Товар3","variant":"premium","price":40000,"rating":4.9,"marketplace":"wildberries","reason":"Почему"}]}],"warnings":["Текст"],"tips":["Текст"]}
 
-Правила: 5 позиций, 2-3 категории, каждая = 3 продукта (budget/optimal/premium), цены в рублях 2025. Кратко!`;
+Правила: 5 позиций, 2-3 категории, каждая позиция = 3 продукта (budget/optimal/premium), цены в рублях 2025. Кратко!`;
 
         const userMessage = `${businessDescription}, ${city || "Москва"}, бюджет: ${budget ? budget.toLocaleString("ru-RU") + "₽" : "не указан"}`;
 
         const response = await retryWithBackoff(() =>
             aiClient.chat.completions.create({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userMessage },
                 ],
                 temperature: 0.6,
-                response_format: { type: "json_object" },
             })
         );
 
