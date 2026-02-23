@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiClient } from "@/lib/ai-client";
 
-// Allow up to 60 seconds on Vercel (requires Pro plan for >10s)
+// Allow up to 60 seconds on Vercel
 export const maxDuration = 60;
+
+// Helper: retry with exponential backoff for rate-limit (429)
+async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            const status = error?.status || error?.response?.status;
+            if (status === 429 && attempt < retries) {
+                const delay = Math.min(2000 * Math.pow(2, attempt), 10000);
+                console.log(`Rate limited (429), retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`);
+                await new Promise((r) => setTimeout(r, delay));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error("Max retries exceeded");
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -48,14 +67,16 @@ export async function POST(req: NextRequest) {
 Город: ${city || "Москва"}
 Бюджет: ${budget ? budget.toLocaleString("ru-RU") + " ₽" : "Не указан"}`;
 
-        const response = await aiClient.chat.completions.create({
-            model: "gemini-2.0-flash",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userMessage },
-            ],
-            temperature: 0.6,
-        });
+        const response = await retryWithBackoff(() =>
+            aiClient.chat.completions.create({
+                model: "gemini-2.0-flash",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userMessage },
+                ],
+                temperature: 0.6,
+            })
+        );
 
         const content = response.choices[0]?.message?.content ?? "{}";
 
@@ -112,9 +133,17 @@ export async function POST(req: NextRequest) {
         });
     } catch (error: any) {
         console.error("Procurement recommend error:", error);
-        // Return detailed error for debugging
         const message = error?.message || "Unknown error";
         const status = error?.status || 500;
+
+        // User-friendly message for rate limits
+        if (status === 429) {
+            return NextResponse.json(
+                { error: "AI-сервис временно перегружен. Подождите 30 секунд и попробуйте снова." },
+                { status: 429 }
+            );
+        }
+
         return NextResponse.json(
             { error: `Ошибка AI: ${message.slice(0, 200)}` },
             { status }
