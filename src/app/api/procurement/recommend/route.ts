@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 5 позиций, 2-3 категории, 3 продукта на позицию (budget/optimal/premium). Цены рублях 2025. Кратко!`;
 
         // Use Google Generative AI REST API directly (not OpenAI-compatible endpoint)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
         const body = {
             contents: [{ parts: [{ text: prompt }] }],
